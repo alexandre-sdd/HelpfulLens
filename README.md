@@ -1,4 +1,4 @@
-# yelp_helpfulness_mlflow
+# HelpfulLens (yelp_helpfulness_mlflow)
 
 End-to-end scaffold for predicting Yelp review helpfulness with MLflow-driven
 experiment tracking, structured data pipelines, and reproducible project metadata.
@@ -129,8 +129,8 @@ You can still use this project even if you have never touched Git before:
    - Easy mode: click “Code → Download ZIP” on GitHub, unzip anywhere (e.g., Desktop).  
    - Git mode: open *Terminal* (macOS/Linux) or *PowerShell* (Windows), then run:  
      ```bash
-     git clone https://github.com/<your-account>/yelp_helpfulness_mlflow.git
-     cd yelp_helpfulness_mlflow
+     git clone https://github.com/<your-account>/HelpfulLens.git
+     cd HelpfulLens
      ```
 3. **Create a Python environment**  
    - Windows: `python -m venv .venv` then `.\.venv\Scripts\activate`.  
