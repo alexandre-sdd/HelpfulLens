@@ -1,0 +1,41 @@
+data:
+  raw:
+    business_dir: "data/raw/business"
+    reviews_dir: "data/raw/reviews"
+    users_dir: "data/raw/users"
+    tips_dir: "data/raw/tips"
+  interim:
+    cleaned_dir: "data/interim/cleaned"
+    features_dir: "data/interim/features"
+  processed:
+    training_dir: "data/processed/training"
+    evaluation_dir: "data/processed/evaluation"
+
+models:
+  artifacts_dir: "models/artifacts"
+  registry_dir: "models/registry"
+  latest_registry_entry: "models/registry/dummy_model_v0.json"
+
+features:
+  text:
+    vectorizer: "tfidf"
+    max_features: 5000
+    ngram_range: [1, 2]
+  numeric:
+    include_review_length: true
+    include_user_stats: true
+    include_business_stats: true
+
+training:
+  model_type: "logistic_regression"
+  hyperparameters:
+    C: 1.0
+    max_iter: 1000
+    class_weight: "balanced"
+  validation_split: 0.2
+  random_state: 42
+
+mlflow:
+  tracking_uri: "mlruns"
+  experiment_name: "yelp_helpfulness_experiments"
+  model_name: "yelp_helpfulness_classifier"

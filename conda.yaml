@@ -1,0 +1,15 @@
+name: yelp_helpfulness_mlflow
+channels:
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - mlflow
+      - pandas
+      - numpy
+      - scikit-learn
+      - matplotlib
+      - seaborn
+      - jupyter
+      - pyyaml
