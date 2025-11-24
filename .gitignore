@@ -7,3 +7,4 @@ data/interim/
 data/processed/
 mlruns/
 models/artifacts/
+*.ipynb
