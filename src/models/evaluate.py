@@ -25,10 +25,15 @@ def evaluate(model_uri: Optional[str] = None) -> None:
     )
     target_model = model_uri or default_model_uri
     metrics = {"eval_accuracy": 0.48, "eval_f1": 0.47}
+    eval_split_dir = (
+        config.get("data", {})
+        .get("datasets", {})
+        .get("evaluation_dir", "data/datasets/evaluation")
+    )
 
     with mlflow.start_run(run_name="yelp_helpfulness_evaluate"):
         mlflow.log_param("model_uri", target_model)
-        mlflow.log_param("evaluation_split", config.get("data", {}).get("processed", {}).get("evaluation_dir", ""))
+        mlflow.log_param("evaluation_split", eval_split_dir)
         for key, value in metrics.items():
             mlflow.log_metric(key, value)
 

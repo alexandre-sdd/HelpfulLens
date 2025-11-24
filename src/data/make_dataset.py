@@ -119,11 +119,11 @@ def _split_train_eval(
 
 def build_master_table(config: Dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     data_cfg = config.get("data", {})
-    interim_cfg = data_cfg.get("interim", {})
-    processed_cfg = data_cfg.get("processed", {})
-    cleaned_dir = Path(interim_cfg.get("cleaned_dir", "data/interim/cleaned"))
-    training_dir = Path(processed_cfg.get("training_dir", "data/processed/training"))
-    eval_dir = Path(processed_cfg.get("evaluation_dir", "data/processed/evaluation"))
+    cleaned_cfg = data_cfg.get("cleaned", {})
+    datasets_cfg = data_cfg.get("datasets", {})
+    cleaned_dir = Path(cleaned_cfg.get("dir", "data/cleaned"))
+    training_dir = Path(datasets_cfg.get("training_dir", "data/datasets/training"))
+    eval_dir = Path(datasets_cfg.get("evaluation_dir", "data/datasets/evaluation"))
     training_dir.mkdir(parents=True, exist_ok=True)
     eval_dir.mkdir(parents=True, exist_ok=True)
 

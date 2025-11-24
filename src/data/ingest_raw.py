@@ -44,14 +44,18 @@ def _normalize_dataset_name(name: str) -> str:
     return lowered
 
 
-def _parquet_name(json_path: Path) -> str:
+def _json_stem(json_path: Path) -> str:
     """Derive the parquet filename from a JSON shard."""
     name = json_path.name
     if name.endswith(".json.gz"):
         name = name[: -len(".json.gz")]
     elif name.endswith(".json"):
         name = name[: -len(".json")]
-    return f"{name}.parquet"
+    return name
+
+
+def _parquet_name(json_path: Path) -> str:
+    return f"{_json_stem(json_path)}.parquet"
 
 
 def _is_supported_file(path: Path) -> bool:
@@ -96,6 +100,7 @@ def convert_json_to_parquet(
     chunk_size: int | None = None,
     force: bool = False,
     limit: int | None = None,
+    rows_per_chunk: int | None = None,
 ) -> List[Path]:
     """Convert JSON shards for a dataset into parquet files."""
     written: List[Path] = []
@@ -113,6 +118,35 @@ def convert_json_to_parquet(
 
         if not _is_supported_file(json_file):
             LOGGER.debug("Skipping non-JSON file %s", json_file.name)
+            continue
+
+        base_name = _json_stem(json_file)
+        if rows_per_chunk and rows_per_chunk > 0:
+            existing_parts = list(target_dir.glob(f"{base_name}_part*.parquet"))
+            if existing_parts and not force:
+                LOGGER.info(
+                    "Skipping %s (chunked parquet already exists: %d files)",
+                    json_file.name,
+                    len(existing_parts),
+                )
+                continue
+            LOGGER.info(
+                "Reading %s in chunks of %d rows", json_file, rows_per_chunk
+            )
+            chunk_iter = pd.read_json(
+                json_file, lines=True, chunksize=rows_per_chunk
+            )
+            chunk_written = False
+            for chunk_idx, chunk in enumerate(chunk_iter, start=1):
+                chunk_path = target_dir / f"{base_name}_part{chunk_idx:04d}.parquet"
+                LOGGER.info(
+                    "Writing %s (%d rows)", chunk_path, chunk.shape[0]
+                )
+                chunk.to_parquet(chunk_path, index=False)
+                written.append(chunk_path)
+                chunk_written = True
+            if not chunk_written:
+                LOGGER.warning("No data written for %s", json_file)
             continue
 
         parquet_path = target_dir / _parquet_name(json_file)
@@ -178,6 +212,12 @@ def parse_args() -> argparse.Namespace:
         help="Optional pandas.read_json chunk size for huge files.",
     )
     parser.add_argument(
+        "--rows-per-chunk",
+        type=int,
+        default=None,
+        help="If set, write multiple parquet files per JSON (one per chunk of this many rows).",
+    )
+    parser.add_argument(
         "--force",
         action="store_true",
         help="Overwrite parquet files even if they already exist.",
@@ -201,10 +241,8 @@ def main() -> None:
     args = parse_args()
     config = load_config(args.config)
     data_cfg = config.get("data", {})
-    interim_cfg = data_cfg.get("interim", {})
-    raw_parquet_root = Path(
-        interim_cfg.get("raw_parquet_dir", "data/interim/raw_parquet")
-    )
+    raw_cfg = data_cfg.get("raw", {})
+    raw_parquet_root = Path(raw_cfg.get("parquet_dir", "data/raw/parquet"))
     raw_parquet_root.mkdir(parents=True, exist_ok=True)
 
     datasets = [_normalize_dataset_name(name) for name in args.datasets]
@@ -221,6 +259,7 @@ def main() -> None:
             chunk_size=args.chunk_size,
             force=args.force,
             limit=args.limit,
+            rows_per_chunk=args.rows_per_chunk,
         )
         summary.append((dataset, len(written)))
 

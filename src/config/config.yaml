@@ -1,17 +1,20 @@
 data:
   raw:
     root_dir: "data/raw"
-    business_dir: "data/raw/business"
-    reviews_dir: "data/raw/reviews"
-    users_dir: "data/raw/users"
-    tips_dir: "data/raw/tips"
-  interim:
-    raw_parquet_dir: "data/interim/raw_parquet"
-    cleaned_dir: "data/interim/cleaned"
-    features_dir: "data/interim/features"
-  processed:
-    training_dir: "data/processed/training"
-    evaluation_dir: "data/processed/evaluation"
+    parquet_dir: "data/raw/parquet"
+  cleaned:
+    dir: "data/cleaned"
+  enriched:
+    dir: "data/enriched"
+  features:
+    dir: "data/features"
+  datasets:
+    training_dir: "data/datasets/training"
+    evaluation_dir: "data/datasets/evaluation"
+  predictions:
+    dir: "data/predictions"
+  external:
+    dir: "data/external"
 
 models:
   artifacts_dir: "models/artifacts"

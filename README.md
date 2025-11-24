@@ -7,7 +7,7 @@ experiment tracking, structured data pipelines, and reproducible project metadat
 
 - **MLflow project** with `train` and `evaluate` entry points plus local tracking
   in `mlruns/`.
-- **Opinionated directory layout** for raw/interim/processed data, feature caches,
+- **Opinionated directory layout** covering raw dumps, cleaned tables, features,
   and a lightweight model registry (`models/registry/`).
 - **Config-first design:** `src/config/config.yaml` centralizes paths,
   feature toggles, hyperparameters, and MLflow metadata.
@@ -21,9 +21,14 @@ experiment tracking, structured data pipelines, and reproducible project metadat
 ├─ conda.yaml
 ├─ requirements.txt
 ├─ data/
-│  ├─ raw/{business,reviews,users,tips}/
-│  ├─ interim/{cleaned,features}/
-│  └─ processed/{training,evaluation}/
+│  ├─ raw/ (JSON dumps + Dataset_User_Agreement.pdf)
+│  │  └─ parquet/          # JSON→parquet caches from ingest_raw
+│  ├─ cleaned/             # outputs from clean_yelp.py
+│  ├─ enriched/            # manual joins / aggregations
+│  ├─ features/            # cached feature matrices
+│  ├─ datasets/{training,evaluation}/
+│  ├─ predictions/         # saved inference outputs
+│  └─ external/            # reference lookups (holidays, etc.)
 ├─ models/
 │  ├─ artifacts/              # serialized models + vectorizers
 │  └─ registry/               # promoted versions (JSON descriptors)
@@ -74,21 +79,22 @@ a single helper script:
 
 ```bash
 # Optional env vars:
-#   DATASETS, INGEST_DATASETS, CLEAN_DATASETS, CHUNK_SIZE,
+#   INGEST_DATASETS, CLEAN_DATASETS, CHUNK_SIZE, ROWS_PER_CHUNK,
 #   INGEST_LIMIT, CLEAN_LIMIT, FORCE (0/1), CONFIG
 ./scripts/run_data_pipeline.sh
 ```
 
 The script orchestrates three steps:
 
-1. `python -m src.data.ingest_raw` converts JSON shards in `data/raw/*` into
-   fast-loading parquet caches inside `data/interim/raw_parquet/`.
+1. `python -m src.data.ingest_raw` converts JSON shards in `data/raw/` into
+   fast-loading parquet caches inside `data/raw/parquet/`. Use
+   `--rows-per-chunk` to write multiple parquet files per JSON so you can follow
+   ingestion progress chunk-by-chunk.
 2. `python -m src.data.clean_yelp` runs the `clean_*_df` functions shown in
-   `src/data/clean_yelp.py`, persisting `*_clean.parquet` files to
-   `data/interim/cleaned/`.
+   `src/data/clean_yelp.py`, persisting `*_clean.parquet` files to `data/cleaned/`.
 3. `python -m src.data.make_dataset` joins the cleaned tables, engineers a
    handful of review-level features, and writes train/eval parquet files to
-   `data/processed/{training,evaluation}/`.
+   `data/datasets/{training,evaluation}/`.
 
 Smoke-test the pipeline on small subsets via `INGEST_LIMIT=1 CLEAN_LIMIT=1000 ./scripts/run_data_pipeline.sh`.
 
@@ -113,16 +119,14 @@ Shortcut scripts are available under `scripts/` if you prefer `./scripts/run_tra
 
 ## How the Pieces Fit Together
 
-1. **Raw data ingestion** – JSON exports from Yelp go into the `data/raw/*`
-   folders. The loader scripts only need the files to exist; no database setup is
-   required.
-2. **Cleaning + merging** – `src/data/make_dataset.py` will merge reviews,
-   businesses, users, and optional tips into intermediate CSV/Parquet tables,
-   saved in `data/interim/cleaned`.
-3. **Feature engineering** – `src/features/build_features.py` creates numeric and
-   text features and stores cache files in `data/interim/features`.
-4. **Processed datasets** – final train/eval splits land in
-   `data/processed/{training,evaluation}`.
+1. **Raw data ingestion** – JSON exports from Yelp go into `data/raw/`. The
+   ingestion module mirrors them to `data/raw/parquet/` for faster reloads.
+2. **Cleaning + merging** – `src/data/clean_yelp.py` standardizes each dataset
+   and writes deterministic `*_clean.parquet` files to `data/cleaned/`.
+3. **Feature engineering** – `src/features/build_features.py` (or notebooks)
+   produce experiment-specific caches under `data/features/`.
+4. **Processed datasets** – `src/data/make_dataset.py` joins the cleaned tables
+   and writes final train/eval splits to `data/datasets/{training,evaluation}`.
 5. **Modeling with MLflow** – the `train` entry point runs your training script,
    which logs parameters, metrics, artifacts, and a model registry pointer. The
    `evaluate` entry point consumes the saved model and logs evaluation metrics.
@@ -185,8 +189,8 @@ You can still use this project even if you have never touched Git before:
 ## What Does `.gitignore` Mean?
 
 - `.gitignore` is a list of files/folders Git should *not* track. This project
-  ignores heavy folders like `data/raw/`, `data/processed/`, `mlruns/`, and
-  `models/artifacts/` so gigabytes of data stay on your computer only.
+  ignores heavy folders like `data/raw/`, `data/cleaned/`, `data/datasets/`,
+  `mlruns/`, and `models/artifacts/` so gigabytes of data stay on your computer only.
 - You can still create those folders locally (they already exist). Git simply
   skips them when committing. This keeps the repository fast and avoids uploading
   private Yelp datasets.

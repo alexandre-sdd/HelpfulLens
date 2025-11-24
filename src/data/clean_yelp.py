@@ -264,9 +264,10 @@ def main() -> None:
     args = parse_args()
     config = load_config(args.config)
     data_cfg = config.get("data", {})
-    interim_cfg = data_cfg.get("interim", {})
-    raw_root = Path(interim_cfg.get("raw_parquet_dir", "data/interim/raw_parquet"))
-    cleaned_root = Path(interim_cfg.get("cleaned_dir", "data/interim/cleaned"))
+    raw_cfg = data_cfg.get("raw", {})
+    cleaned_cfg = data_cfg.get("cleaned", {})
+    raw_root = Path(raw_cfg.get("parquet_dir", "data/raw/parquet"))
+    cleaned_root = Path(cleaned_cfg.get("dir", "data/cleaned"))
 
     datasets = [_normalize_dataset(name) for name in args.datasets]
     for dataset in datasets:

@@ -5,26 +5,35 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict, List
 
-RAW_SUBDIRS = {
-    "business": Path("data/raw/business"),
-    "reviews": Path("data/raw/reviews"),
-    "users": Path("data/raw/users"),
-    "tips": Path("data/raw/tips"),
+RAW_ROOT = Path("data/raw")
+FALLBACK_PATTERNS = {
+    "business": "yelp_academic_dataset_business*.json*",
+    "reviews": "yelp_academic_dataset_review*.json*",
+    "users": "yelp_academic_dataset_user*.json*",
+    "tips": "yelp_academic_dataset_tip*.json*",
 }
 
 
-def load_raw_yelp(raw_dirs: Dict[str, Path] | None = None) -> Dict[str, List[Path]]:
-    """Stub loader for Yelp JSON dumps to pandas DataFrames.
+def _collect_dataset_files(dataset: str, root: Path = RAW_ROOT) -> List[Path]:
+    """Return JSON shards for a dataset, supporting both folders and flat files."""
+    dataset_dir = root / dataset
+    candidates: List[Path] = []
+    if dataset_dir.exists() and dataset_dir.is_dir():
+        candidates.extend(sorted(dataset_dir.glob("*.json*")))
+    if not candidates:
+        pattern = FALLBACK_PATTERNS.get(dataset)
+        if pattern:
+            candidates.extend(sorted(root.glob(pattern)))
+    return candidates
 
-    The new folder layout separates each JSON dump into its own subdirectory.
-    This helper simply enumerates the available JSON files so downstream code
-    knows what to load.
-    """
 
-    directories = raw_dirs or RAW_SUBDIRS
+def load_raw_yelp() -> Dict[str, List[Path]]:
+    """Enumerate available Yelp JSON shards."""
+
+    datasets = ("business", "reviews", "users", "tips")
     available_files: Dict[str, List[Path]] = {}
-    for name, folder in directories.items():
-        available_files[name] = sorted(folder.glob("*.json"))
+    for name in datasets:
+        available_files[name] = _collect_dataset_files(name)
     return available_files
 
 
