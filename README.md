@@ -53,6 +53,45 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Notebook Output Hygiene
+
+We vendor `.gitattributes` rules so Jupyter notebooks are cleaned via
+[`nbstripout`](https://github.com/kynan/nbstripout) before commits. Run the
+install step once per clone (after the dependencies are installed):
+
+```bash
+nbstripout --install --attributes .gitattributes
+nbstripout --status   # optional: confirm the filter is active
+```
+
+`nbstripout` strips execution counts, images, and other transient cell outputs so
+you can `git push` notebooks without noisy diffs or binary blobs.
+
+## Data Pipeline
+
+The end-to-end Yelp data prep lives under `src/data/` and can be kicked off with
+a single helper script:
+
+```bash
+# Optional env vars:
+#   DATASETS, INGEST_DATASETS, CLEAN_DATASETS, CHUNK_SIZE,
+#   INGEST_LIMIT, CLEAN_LIMIT, FORCE (0/1), CONFIG
+./scripts/run_data_pipeline.sh
+```
+
+The script orchestrates three steps:
+
+1. `python -m src.data.ingest_raw` converts JSON shards in `data/raw/*` into
+   fast-loading parquet caches inside `data/interim/raw_parquet/`.
+2. `python -m src.data.clean_yelp` runs the `clean_*_df` functions shown in
+   `src/data/clean_yelp.py`, persisting `*_clean.parquet` files to
+   `data/interim/cleaned/`.
+3. `python -m src.data.make_dataset` joins the cleaned tables, engineers a
+   handful of review-level features, and writes train/eval parquet files to
+   `data/processed/{training,evaluation}/`.
+
+Smoke-test the pipeline on small subsets via `INGEST_LIMIT=1 CLEAN_LIMIT=1000 ./scripts/run_data_pipeline.sh`.
+
 ## Running the Project
 
 ```bash

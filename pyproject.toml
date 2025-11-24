@@ -3,17 +3,22 @@ requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "helpfullens"           # arbitrary distribution name
+name = "helpfullens"
 version = "0.1.0"
 description = "Yelp review usefulness prediction pipeline"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "mlflow",
     "pandas",
+    "numpy",
+    "scikit-learn",
+    "matplotlib",
+    "seaborn",
+    "jupyter",
+    "pyyaml",
     "pyarrow",
-    # add anything else you know you'll use, e.g.:
-    # "scikit-learn",
-    # "numpy",
+    "nbstripout",
 ]
 
 [tool.setuptools]

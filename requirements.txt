@@ -6,3 +6,5 @@ matplotlib
 seaborn
 jupyter
 pyyaml
+pyarrow
+nbstripout

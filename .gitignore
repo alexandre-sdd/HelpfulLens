@@ -5,6 +5,9 @@ __pycache__/
 data/raw/
 data/interim/
 data/processed/
+*.parquet
+*.json
+*.csv
 mlruns/
 models/artifacts/
 *.ipynb

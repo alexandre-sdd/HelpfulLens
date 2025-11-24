@@ -1,0 +1,4 @@
+# Strip notebook outputs via nbstripout
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb
+*.zpln filter=nbstripout

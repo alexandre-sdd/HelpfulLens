@@ -5,6 +5,7 @@ data:
     users_dir: "data/raw/users"
     tips_dir: "data/raw/tips"
   interim:
+    raw_parquet_dir: "data/interim/raw_parquet"
     cleaned_dir: "data/interim/cleaned"
     features_dir: "data/interim/features"
   processed:
