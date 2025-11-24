@@ -14,6 +14,12 @@ from src.utils.logging_utils import get_logger
 CONFIG_PATH = Path("src/config/config.yaml")
 DEFAULT_DATASETS = ("business", "reviews", "users", "tips")
 SUPPORTED_EXTENSIONS = (".json", ".json.gz")
+FALLBACK_PATTERNS = {
+    "business": "yelp_academic_dataset_business*.json*",
+    "reviews": "yelp_academic_dataset_review*.json*",
+    "users": "yelp_academic_dataset_user*.json*",
+    "tips": "yelp_academic_dataset_tip*.json*",
+}
 
 LOGGER = get_logger("ingest_raw")
 
@@ -52,6 +58,23 @@ def _is_supported_file(path: Path) -> bool:
     if path.suffix in SUPPORTED_EXTENSIONS:
         return True
     return path.name.endswith(".json.gz")
+
+
+def _collect_files_from_folder(folder: Path) -> List[Path]:
+    if not folder.exists():
+        return []
+    if folder.is_file():
+        return [folder] if _is_supported_file(folder) else []
+    return sorted([path for path in folder.iterdir() if _is_supported_file(path)])
+
+
+def _fallback_files(dataset: str, root_dir: Path) -> List[Path]:
+    pattern = FALLBACK_PATTERNS.get(dataset)
+    if not pattern:
+        return []
+    if not root_dir.exists():
+        return []
+    return sorted([path for path in root_dir.glob(pattern) if _is_supported_file(path)])
 
 
 def _read_json(json_path: Path, chunk_size: int | None = None) -> pd.DataFrame:
@@ -112,21 +135,29 @@ def discover_raw_files(
     """Return JSON shards detected for each requested dataset."""
     data_cfg = config.get("data", {})
     raw_cfg = data_cfg.get("raw", {})
+    root_dir = Path(raw_cfg.get("root_dir", "data/raw"))
     discovered: Dict[str, List[Path]] = {}
     for name in datasets:
         normalized = _normalize_dataset_name(name)
         dir_key = f"{normalized}_dir"
-        raw_dir = raw_cfg.get(dir_key)
-        if not raw_dir:
-            LOGGER.warning("No raw directory configured for dataset '%s'", normalized)
-            discovered[normalized] = []
-            continue
-        folder = Path(raw_dir)
-        files: List[Path] = []
-        if folder.exists():
-            files = sorted([path for path in folder.iterdir() if _is_supported_file(path)])
-        else:
-            LOGGER.warning("Raw directory %s does not exist", folder)
+        raw_dir_entry = raw_cfg.get(dir_key)
+        folder = Path(raw_dir_entry) if raw_dir_entry else root_dir / normalized
+        files: List[Path] = _collect_files_from_folder(folder)
+        if not files:
+            fallback = _fallback_files(normalized, root_dir)
+            if fallback:
+                LOGGER.info(
+                    "Using fallback pattern for dataset '%s' (found %d files in %s)",
+                    normalized,
+                    len(fallback),
+                    root_dir,
+                )
+                files = fallback
+            else:
+                LOGGER.warning(
+                    "Raw directory %s does not exist or contains no JSON files",
+                    folder,
+                )
         discovered[normalized] = files
     return discovered
 

@@ -1,5 +1,6 @@
 data:
   raw:
+    root_dir: "data/raw"
     business_dir: "data/raw/business"
     reviews_dir: "data/raw/reviews"
     users_dir: "data/raw/users"
