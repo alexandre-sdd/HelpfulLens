@@ -7,7 +7,7 @@ __pycache__/
 *.csv
 mlruns/
 models/artifacts/
-*.ipynb
+# *.ipynb
 data/**
 !data/**/
 !data/README.md
