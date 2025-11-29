@@ -19,6 +19,7 @@ dependencies = [
     "pyyaml",
     "pyarrow",
     "nbstripout",
+    "vaderSentiment",
 ]
 
 [tool.setuptools]
