@@ -348,7 +348,7 @@ def main(
     # helpful distribution (log)
     plt.figure()
     plt.hist(df["helpful_log1p"], bins=50)
-    plt.title("Distribution of log(1 + helpful/useful votes)")
+    plt.title(f"Distribution of log(1 + helpful) — N={len(df):,}")
     plt.xlabel("log1p(helpful)")
     plt.ylabel("Count")
     savefig("helpful_distribution.png")
@@ -357,7 +357,9 @@ def main(
     month_mean = df.groupby("month")["helpful"].mean().reindex(range(1, 13))
     plt.figure()
     plt.plot(month_mean.index, month_mean.values, marker="o")
-    plt.title("Mean helpful votes by month")
+    plt.title(
+        f"Mean helpful by month (overall mean={df['helpful'].mean():.2f}, n={len(df):,})"
+    )
     plt.xlabel("Month")
     plt.ylabel("Mean helpful")
     plt.xticks(range(1, 13))
@@ -368,7 +370,9 @@ def main(
     wd_mean = df.groupby("weekday")["helpful"].mean().reindex(weekday_order)
     plt.figure(figsize=(8, 4))
     plt.bar(wd_mean.index.astype(str), wd_mean.values)
-    plt.title("Mean helpful votes by weekday")
+    plt.title(
+        f"Mean helpful by weekday (overall mean={df['helpful'].mean():.2f}, n={len(df):,})"
+    )
     plt.xticks(rotation=30, ha="right")
     plt.ylabel("Mean helpful")
     savefig("helpful_by_weekday.png")
@@ -380,10 +384,12 @@ def main(
                   .agg(mean="mean", median="median", n="size")
                   .sort_values("mean", ascending=False))
     plt.figure(figsize=(10, 4))
-    plt.bar(city_stats.index, city_stats["mean"])
-    plt.title("Mean helpful votes by city (top 15 by count)")
+    city_labels = [f"{city} (n={n:,})" for city, n in zip(city_stats.index, city_stats["n"])]
+    plt.bar(city_labels, city_stats["mean"])
+    plt.title("Mean helpful by city (top 15)")
     plt.xticks(rotation=45, ha="right")
     plt.ylabel("Mean helpful")
+    plt.xlabel("City (sample size)")
     savefig("helpful_by_city.png")
 
     # category (top 20 by count)
@@ -393,24 +399,28 @@ def main(
                  .agg(mean="mean", median="median", n="size")
                  .sort_values("mean", ascending=False))
     plt.figure(figsize=(10, 5))
-    plt.bar(cat_stats.index, cat_stats["mean"])
-    plt.title("Mean helpful votes by category (top 20 by count)")
+    cat_labels = [f"{cat} (n={n:,})" for cat, n in zip(cat_stats.index, cat_stats["n"])]
+    plt.bar(cat_labels, cat_stats["mean"])
+    plt.title("Mean helpful by category (top 20)")
     plt.xticks(rotation=60, ha="right")
     plt.ylabel("Mean helpful")
+    plt.xlabel("Category (sample size)")
     savefig("helpful_by_category.png")
 
     # useful vs cool / funny (scatter sample)
     sample = df.sample(min(len(df), 25_000), random_state=42)
     plt.figure()
+    cool_corr = sample["cool"].corr(sample["helpful"], method="spearman")
     plt.scatter(sample["cool"], sample["helpful"], alpha=0.2)
-    plt.title("Helpful (useful votes) vs Cool votes")
+    plt.title(f"Helpful vs Cool votes (Spearman ρ={cool_corr:.2f}, n={len(sample):,})")
     plt.xlabel("cool")
     plt.ylabel("helpful")
     savefig("helpful_vs_cool.png")
 
     plt.figure()
+    funny_corr = sample["funny"].corr(sample["helpful"], method="spearman")
     plt.scatter(sample["funny"], sample["helpful"], alpha=0.2)
-    plt.title("Helpful (useful votes) vs Funny votes")
+    plt.title(f"Helpful vs Funny votes (Spearman ρ={funny_corr:.2f}, n={len(sample):,})")
     plt.xlabel("funny")
     plt.ylabel("helpful")
     savefig("helpful_vs_funny.png")
@@ -425,7 +435,9 @@ def main(
     len_stats = df.groupby("len_decile")["helpful"].mean()
     plt.figure(figsize=(10, 4))
     plt.plot(range(len(len_stats)), len_stats.values, marker="o")
-    plt.title("Mean helpful votes by review length decile")
+    plt.title(
+        f"Mean helpful by review length decile (overall mean={df['helpful'].mean():.2f}, n={len(df):,})"
+    )
     plt.xlabel("Length decile (short → long)")
     plt.ylabel("Mean helpful")
     savefig("helpful_by_length_decile.png")
@@ -449,7 +461,7 @@ def main(
     plt.imshow(corr, interpolation="nearest")
     plt.xticks(range(len(corr_cols)), corr_cols, rotation=90)
     plt.yticks(range(len(corr_cols)), corr_cols)
-    plt.title("Spearman correlation (selected numeric features)")
+    plt.title(f"Spearman correlation (selected numeric features, n={len(df):,})")
     plt.colorbar()
     savefig("correlation_heatmap.png")
 
@@ -460,7 +472,9 @@ def main(
         fans_stats = df.groupby("fans_bin")["helpful"].mean()
         plt.figure()
         plt.bar(fans_stats.index.astype(str), fans_stats.values)
-        plt.title("Mean helpful votes by user fans bin")
+        plt.title(
+            f"Mean helpful by user fans bin (overall mean={df['helpful'].mean():.2f}, n={len(df):,})"
+        )
         plt.xlabel("Fans bin")
         plt.ylabel("Mean helpful")
         savefig("helpful_by_user_fans.png")

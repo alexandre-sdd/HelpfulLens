@@ -20,6 +20,7 @@ dependencies = [
     "pyarrow",
     "nbstripout",
     "vaderSentiment",
+    "transformers",
 ]
 
 [tool.setuptools]

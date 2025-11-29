@@ -9,3 +9,4 @@ pyyaml
 pyarrow
 nbstripout
 vaderSentiment
+transformers
