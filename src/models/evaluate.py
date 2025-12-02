@@ -19,6 +19,8 @@ from sklearn.metrics import (
     explained_variance_score,
 )
 from scipy.stats import pearsonr, spearmanr
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 CONFIG_PATH = Path("src/config/config.yaml")
 
@@ -165,6 +167,79 @@ def evaluate(model_uri: Optional[str] = None) -> None:
     out_pred_path = preds_dir / "eval_predictions.parquet"
     pd.DataFrame({"y_true": y_eval.values, "y_pred": y_pred}).to_parquet(out_pred_path, index=False)
 
+    # Visualization artifacts
+    plots_dir = preds_dir / "plots"
+    plots_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1) Scatter: y_true vs y_pred
+    try:
+        plt.figure(figsize=(6, 6))
+        sns.scatterplot(x=y_eval, y=y_pred, alpha=0.4, edgecolor=None)
+        plt.plot([0, 1], [0, 1], "r--", linewidth=1)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.xlabel("y_true (ratio)")
+        plt.ylabel("y_pred (ratio)")
+        plt.title("True vs Predicted (ratio)")
+        plt.tight_layout()
+        scatter_path = plots_dir / "eval_scatter_true_vs_pred.png"
+        plt.savefig(scatter_path, dpi=150)
+        plt.close()
+    except Exception:
+        scatter_path = None
+
+    # 2) Histogram: y_pred distribution
+    try:
+        plt.figure(figsize=(7, 4))
+        sns.histplot(y_pred, bins=50, kde=False)
+        plt.xlim(0, 1)
+        plt.xlabel("y_pred")
+        plt.ylabel("count")
+        plt.title("Distribution of y_pred")
+        plt.tight_layout()
+        hist_pred_path = plots_dir / "eval_hist_y_pred.png"
+        plt.savefig(hist_pred_path, dpi=150)
+        plt.close()
+    except Exception:
+        hist_pred_path = None
+
+    # 3) Residuals histogram (y_true - y_pred)
+    try:
+        residuals = (y_eval - y_pred)
+        plt.figure(figsize=(7, 4))
+        sns.histplot(residuals, bins=50, kde=False)
+        plt.xlabel("residual = y_true - y_pred")
+        plt.ylabel("count")
+        plt.title("Residuals distribution")
+        plt.tight_layout()
+        hist_resid_path = plots_dir / "eval_hist_residuals.png"
+        plt.savefig(hist_resid_path, dpi=150)
+        plt.close()
+    except Exception:
+        hist_resid_path = None
+
+    # 4) Calibration curve via binning on y_pred
+    try:
+        df_cal = pd.DataFrame({"y_true": y_eval.values, "y_pred": y_pred})
+        df_cal["bin"] = pd.qcut(df_cal["y_pred"], q=10, duplicates="drop")
+        calib = df_cal.groupby("bin", observed=True).agg(
+            mean_pred=("y_pred", "mean"), mean_true=("y_true", "mean")
+        ).reset_index(drop=True)
+        plt.figure(figsize=(6, 6))
+        sns.lineplot(x="mean_pred", y="mean_true", data=calib, marker="o")
+        plt.plot([0, 1], [0, 1], "r--", linewidth=1)
+        plt.xlim(0, 1)
+        plt.ylim(0, 1)
+        plt.xlabel("mean predicted (per bin)")
+        plt.ylabel("mean true (per bin)")
+        plt.title("Calibration plot (binned by y_pred)")
+        plt.tight_layout()
+        calib_path = plots_dir / "eval_calibration_plot.png"
+        plt.savefig(calib_path, dpi=150)
+        plt.close()
+    except Exception:
+        calib_path = None
+
     with mlflow.start_run(run_name="yelp_helpfulness_evaluate"):
         mlflow.log_param("model_path", str(model_path))
         mlflow.log_param("evaluation_split", eval_split_dir)
@@ -172,6 +247,10 @@ def evaluate(model_uri: Optional[str] = None) -> None:
             if isinstance(v, (int, float)) and np.isfinite(v):
                 mlflow.log_metric(k, float(v))
         mlflow.log_artifact(str(out_pred_path))
+        # Log plots if available
+        for p in (scatter_path, hist_pred_path, hist_resid_path, calib_path):
+            if p is not None:
+                mlflow.log_artifact(str(p))
 
     print(
         f"Evaluation complete. Metrics: {metrics}\nSaved predictions to: {out_pred_path}"
