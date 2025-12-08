@@ -1,1 +1,1 @@
-"""Top-level package for the Yelp helpfulness MLflow project."""
+"""Top-level package for the HelpfulLens Yelp helpfulness tools."""

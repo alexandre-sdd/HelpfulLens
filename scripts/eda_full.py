@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 import sys
 import time
@@ -9,13 +8,20 @@ import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import pyarrow.parquet as pq
 from tqdm.auto import tqdm
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from src.eda.utils import (
+    apply_with_progress,
+    assert_exists,
+    configure_thread_env,
+    read_parquet_head,
+    savefig,
+    to_categories,
+)
 
 
 # =========================
@@ -26,14 +32,6 @@ DO_USER_MERGE = True        # set False if you want it faster
 DO_TFIDF_WORDS = True       # set False if you want it faster
 TFIDF_SAMPLE = 30_000       # TF-IDF runs on a subset to stay fast
 WEEKDAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
-THREAD_ENV_VARS = [
-    "OMP_NUM_THREADS",
-    "OPENBLAS_NUM_THREADS",
-    "MKL_NUM_THREADS",
-    "NUMEXPR_NUM_THREADS",
-    "VECLIB_MAXIMUM_THREADS",
-    "BLIS_NUM_THREADS",
-]
 
 CLEAN_DIR = Path("data/cleaned")
 REVIEW_PATH = CLEAN_DIR / "reviews_clean.parquet"
@@ -42,98 +40,6 @@ USER_PATH = CLEAN_DIR / "users_clean.parquet"
 
 OUT_DIR = Path("reports/eda")
 FIG_DIR = OUT_DIR / "figures"
-
-
-# =========================
-# Helpers
-# =========================
-def savefig(name: str) -> None:
-    plt.tight_layout()
-    plt.savefig(FIG_DIR / name, dpi=200)
-    plt.close()
-
-def assert_exists(p: Path) -> None:
-    if not p.exists():
-        raise FileNotFoundError(f"Missing file: {p.resolve()}")
-
-def configure_thread_env(max_threads: int | None) -> None:
-    """Optionally cap numerical backend threads."""
-    if max_threads is None or max_threads <= 0:
-        return
-    value = str(max_threads)
-    for var in THREAD_ENV_VARS:
-        os.environ[var] = value
-
-def read_parquet_head(
-    path: Path,
-    n_rows: int | None = None,
-    columns: list[str] | None = None,
-    batch_size: int = 10_000,
-    desc: str | None = None,
-) -> pd.DataFrame:
-    """Read up to n_rows rows from a parquet file with optional progress updates."""
-    pq_file = pq.ParquetFile(path)
-    chunks: list[pd.DataFrame] = []
-    rows_read = 0
-    total_rows = pq_file.metadata.num_rows if pq_file.metadata is not None else None
-
-    if n_rows is not None and n_rows > 0:
-        target_rows = n_rows if total_rows is None else min(n_rows, total_rows)
-    else:
-        target_rows = total_rows
-
-    pbar = tqdm(total=target_rows, unit="rows", desc=desc) if desc else None
-
-    for batch in pq_file.iter_batches(batch_size=batch_size, columns=columns):
-        chunk = batch.to_pandas()
-        chunks.append(chunk)
-        rows_read += len(chunk)
-        if pbar:
-            pbar.update(len(chunk))
-        if n_rows is not None and n_rows > 0 and rows_read >= n_rows:
-            break
-
-    if pbar:
-        pbar.close()
-
-    if not chunks:
-        return pd.DataFrame(columns=columns or [])
-
-    df = pd.concat(chunks, ignore_index=True)
-    if n_rows is not None and n_rows > 0 and len(df) > n_rows:
-        df = df.iloc[:n_rows].copy()
-    return df
-
-def apply_with_progress(
-    series: pd.Series,
-    func,
-    batch_size: int = 10_000,
-    desc: str | None = None,
-) -> pd.Series:
-    """Apply a Python function to a Series with progress + responsive interrupts."""
-    total = len(series)
-    if total == 0:
-        return series.apply(func)
-
-    pbar = tqdm(total=total, desc=desc, unit="rows")
-    chunks: list[pd.Series] = []
-    try:
-        for start in range(0, total, batch_size):
-            end = min(start + batch_size, total)
-            chunk = series.iloc[start:end].apply(func)
-            chunks.append(chunk)
-            pbar.update(end - start)
-    finally:
-        pbar.close()
-    return pd.concat(chunks)
-
-
-def to_categories(x) -> list[str]:
-    if x is None or (isinstance(x, float) and pd.isna(x)):
-        return []
-    if isinstance(x, list):
-        return [str(c).strip() for c in x if str(c).strip()]
-    return [c.strip() for c in str(x).split(",") if c.strip()]
 
 
 def compute_text_basic_features(
@@ -351,7 +257,7 @@ def main(
     plt.title(f"Distribution of log(1 + helpful) — N={len(df):,}")
     plt.xlabel("log1p(helpful)")
     plt.ylabel("Count")
-    savefig("helpful_distribution.png")
+    savefig(FIG_DIR, "helpful_distribution.png", plt)
 
     # seasonality by month
     month_mean = df.groupby("month")["helpful"].mean().reindex(range(1, 13))
@@ -363,7 +269,7 @@ def main(
     plt.xlabel("Month")
     plt.ylabel("Mean helpful")
     plt.xticks(range(1, 13))
-    savefig("helpful_by_month.png")
+    savefig(FIG_DIR, "helpful_by_month.png", plt)
 
     # weekday
     weekday_order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
@@ -375,7 +281,7 @@ def main(
     )
     plt.xticks(rotation=30, ha="right")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_weekday.png")
+    savefig(FIG_DIR, "helpful_by_weekday.png", plt)
 
     # city (top 15 by count)
     top_cities = df["city"].value_counts().head(15).index
@@ -390,7 +296,7 @@ def main(
     plt.xticks(rotation=45, ha="right")
     plt.ylabel("Mean helpful")
     plt.xlabel("City (sample size)")
-    savefig("helpful_by_city.png")
+    savefig(FIG_DIR, "helpful_by_city.png", plt)
 
     # category (top 20 by count)
     top_cats = df_cat["category_list"].value_counts().head(20).index
@@ -405,7 +311,7 @@ def main(
     plt.xticks(rotation=60, ha="right")
     plt.ylabel("Mean helpful")
     plt.xlabel("Category (sample size)")
-    savefig("helpful_by_category.png")
+    savefig(FIG_DIR, "helpful_by_category.png", plt)
 
     # useful vs cool / funny (scatter sample)
     sample = df.sample(min(len(df), 25_000), random_state=42)
@@ -415,7 +321,7 @@ def main(
     plt.title(f"Helpful vs Cool votes (Spearman ρ={cool_corr:.2f}, n={len(sample):,})")
     plt.xlabel("cool")
     plt.ylabel("helpful")
-    savefig("helpful_vs_cool.png")
+    savefig(FIG_DIR, "helpful_vs_cool.png", plt)
 
     plt.figure()
     funny_corr = sample["funny"].corr(sample["helpful"], method="spearman")
@@ -423,7 +329,7 @@ def main(
     plt.title(f"Helpful vs Funny votes (Spearman ρ={funny_corr:.2f}, n={len(sample):,})")
     plt.xlabel("funny")
     plt.ylabel("helpful")
-    savefig("helpful_vs_funny.png")
+    savefig(FIG_DIR, "helpful_vs_funny.png", plt)
 
     # -------------------------
     # Plots: Feature correlations to helpfulness
@@ -440,7 +346,7 @@ def main(
     )
     plt.xlabel("Length decile (short → long)")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_length_decile.png")
+    savefig(FIG_DIR, "helpful_by_length_decile.png", plt)
 
     corr_cols = [
         "helpful", "stars", "cool", "funny",
@@ -463,7 +369,7 @@ def main(
     plt.yticks(range(len(corr_cols)), corr_cols)
     plt.title(f"Spearman correlation (selected numeric features, n={len(df):,})")
     plt.colorbar()
-    savefig("correlation_heatmap.png")
+    savefig(FIG_DIR, "correlation_heatmap.png", plt)
 
     # Optional user plots
     if DO_USER_MERGE and "fans" in df.columns:
@@ -477,7 +383,7 @@ def main(
         )
         plt.xlabel("Fans bin")
         plt.ylabel("Mean helpful")
-        savefig("helpful_by_user_fans.png")
+        savefig(FIG_DIR, "helpful_by_user_fans.png", plt)
 
     # -------------------------
     # “Kind of words” (TF-IDF)

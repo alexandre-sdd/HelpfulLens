@@ -1,19 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-import json
 import time
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
 
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 
+from src.eda.utils import assert_exists, filter_jsonl, savefig, to_categories
 
 # =========================
 # Config
@@ -30,34 +28,6 @@ USER_PATH = RAW_DIR / "yelp_academic_dataset_user.json"
 
 OUT_DIR = Path("reports/eda")
 FIG_DIR = OUT_DIR / "figures"
-
-
-# =========================
-# Helpers
-# =========================
-def savefig(name: str) -> None:
-    plt.tight_layout()
-    plt.savefig(FIG_DIR / name, dpi=200)
-    plt.close()
-
-def assert_exists(p: Path) -> None:
-    if not p.exists():
-        raise FileNotFoundError(f"Missing file: {p.resolve()}")
-
-def filter_jsonl(path: Path, id_field: str, ids: set[str], keep_cols: list[str]) -> pd.DataFrame:
-    """Stream JSON Lines file, keep only rows where obj[id_field] in ids."""
-    rows = []
-    with open(path, "r", encoding="utf-8") as f:
-        for line in tqdm(f, desc=f"Filtering {path.name}"):
-            obj = json.loads(line)
-            if obj.get(id_field) in ids:
-                rows.append({k: obj.get(k) for k in keep_cols})
-    return pd.DataFrame(rows)
-
-def to_categories(x) -> list[str]:
-    if pd.isna(x):
-        return []
-    return [c.strip() for c in str(x).split(",") if c.strip()]
 
 
 def main() -> None:
@@ -147,7 +117,6 @@ def main() -> None:
         users["yelping_since"] = pd.to_datetime(users["yelping_since"], errors="coerce")
 
         df = df.merge(users, on="user_id", how="left", suffixes=("", "_user"))
-        # rename for clarity
         if "review_count_user" not in df.columns and "review_count" in users.columns:
             df.rename(columns={"review_count": "review_count_user"}, inplace=True)
 
@@ -155,16 +124,13 @@ def main() -> None:
     # Plots: Overview helpfulness vs features
     # -------------------------
     print("\nPlotting overview charts...")
-
-    # helpful distribution (log)
     plt.figure()
     plt.hist(df["helpful_log1p"], bins=50)
     plt.title("Distribution of log(1 + helpful/useful votes)")
     plt.xlabel("log1p(helpful)")
     plt.ylabel("Count")
-    savefig("helpful_distribution.png")
+    savefig(FIG_DIR, "helpful_distribution.png", plt)
 
-    # seasonality by month
     month_mean = df.groupby("month")["helpful"].mean().reindex(range(1, 13))
     plt.figure()
     plt.plot(month_mean.index, month_mean.values, marker="o")
@@ -172,9 +138,8 @@ def main() -> None:
     plt.xlabel("Month")
     plt.ylabel("Mean helpful")
     plt.xticks(range(1, 13))
-    savefig("helpful_by_month.png")
+    savefig(FIG_DIR, "helpful_by_month.png", plt)
 
-    # weekday
     weekday_order = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]
     wd_mean = df.groupby("weekday")["helpful"].mean().reindex(weekday_order)
     plt.figure(figsize=(8, 4))
@@ -182,9 +147,8 @@ def main() -> None:
     plt.title("Mean helpful votes by weekday")
     plt.xticks(rotation=30, ha="right")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_weekday.png")
+    savefig(FIG_DIR, "helpful_by_weekday.png", plt)
 
-    # city (top 15 by count)
     top_cities = df["city"].value_counts().head(15).index
     city_stats = (df[df["city"].isin(top_cities)]
                   .groupby("city")["helpful"]
@@ -195,9 +159,8 @@ def main() -> None:
     plt.title("Mean helpful votes by city (top 15 by count)")
     plt.xticks(rotation=45, ha="right")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_city.png")
+    savefig(FIG_DIR, "helpful_by_city.png", plt)
 
-    # category (top 20 by count)
     top_cats = df_cat["category_list"].value_counts().head(20).index
     cat_stats = (df_cat[df_cat["category_list"].isin(top_cats)]
                  .groupby("category_list")["helpful"]
@@ -208,30 +171,28 @@ def main() -> None:
     plt.title("Mean helpful votes by category (top 20 by count)")
     plt.xticks(rotation=60, ha="right")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_category.png")
+    savefig(FIG_DIR, "helpful_by_category.png", plt)
 
-    # useful vs cool / funny (scatter sample)
     sample = df.sample(min(len(df), 25_000), random_state=42)
     plt.figure()
     plt.scatter(sample["cool"], sample["helpful"], alpha=0.2)
     plt.title("Helpful (useful votes) vs Cool votes")
     plt.xlabel("cool")
     plt.ylabel("helpful")
-    savefig("helpful_vs_cool.png")
+    savefig(FIG_DIR, "helpful_vs_cool.png", plt)
 
     plt.figure()
     plt.scatter(sample["funny"], sample["helpful"], alpha=0.2)
     plt.title("Helpful (useful votes) vs Funny votes")
     plt.xlabel("funny")
     plt.ylabel("helpful")
-    savefig("helpful_vs_funny.png")
+    savefig(FIG_DIR, "helpful_vs_funny.png", plt)
 
     # -------------------------
     # Plots: Feature correlations to helpfulness
     # -------------------------
     print("Plotting correlation + length effects...")
 
-    # length deciles
     df["len_decile"] = pd.qcut(df["text_len_words"], q=10, duplicates="drop")
     len_stats = df.groupby("len_decile")["helpful"].mean()
     plt.figure(figsize=(10, 4))
@@ -239,7 +200,7 @@ def main() -> None:
     plt.title("Mean helpful votes by review length decile")
     plt.xlabel("Length decile (short → long)")
     plt.ylabel("Mean helpful")
-    savefig("helpful_by_length_decile.png")
+    savefig(FIG_DIR, "helpful_by_length_decile.png", plt)
 
     corr_cols = [
         "helpful", "stars", "cool", "funny",
@@ -248,7 +209,6 @@ def main() -> None:
         "sentiment_vader",
     ]
     if DO_USER_MERGE:
-        # these may or may not exist depending on merge/renames
         for c in ["review_count_user", "fans", "average_stars"]:
             if c in df.columns:
                 corr_cols.append(c)
@@ -262,9 +222,8 @@ def main() -> None:
     plt.yticks(range(len(corr_cols)), corr_cols)
     plt.title("Spearman correlation (selected numeric features)")
     plt.colorbar()
-    savefig("correlation_heatmap.png")
+    savefig(FIG_DIR, "correlation_heatmap.png", plt)
 
-    # Optional user plots
     if DO_USER_MERGE and "fans" in df.columns:
         df["fans_bin"] = pd.cut(df["fans"].fillna(0), bins=[-1,0,5,20,100,1e9],
                                 labels=["0","1-5","6-20","21-100","100+"])
@@ -274,7 +233,7 @@ def main() -> None:
         plt.title("Mean helpful votes by user fans bin")
         plt.xlabel("Fans bin")
         plt.ylabel("Mean helpful")
-        savefig("helpful_by_user_fans.png")
+        savefig(FIG_DIR, "helpful_by_user_fans.png", plt)
 
     # -------------------------
     # “Kind of words” (TF-IDF)
@@ -343,4 +302,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

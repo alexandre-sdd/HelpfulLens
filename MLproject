@@ -1,9 +1,0 @@
-name: yelp_helpfulness_mlflow
-
-conda_env: conda.yaml
-
-entry_points:
-  train:
-    command: "python -m src.models.train"
-  evaluate:
-    command: "python -m src.models.evaluate"

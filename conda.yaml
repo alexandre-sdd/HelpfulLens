@@ -1,11 +1,10 @@
-name: yelp_helpfulness_mlflow
+name: helpfullens
 channels:
   - defaults
 dependencies:
   - python=3.10
   - pip
   - pip:
-      - mlflow
       - pandas
       - numpy
       - scikit-learn
@@ -13,3 +12,9 @@ dependencies:
       - seaborn
       - jupyter
       - pyyaml
+      - pyarrow
+      - nbstripout
+      - vaderSentiment
+      - transformers
+      - torch
+      - tqdm

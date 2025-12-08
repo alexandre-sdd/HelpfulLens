@@ -16,11 +16,6 @@ data:
   external:
     dir: "data/external"
 
-models:
-  artifacts_dir: "models/artifacts"
-  registry_dir: "models/registry"
-  latest_registry_entry: "models/registry/dummy_model_v0.json"
-
 features:
   text:
     vectorizer: "tfidf"
@@ -39,8 +34,3 @@ training:
     class_weight: "balanced"
   validation_split: 0.2
   random_state: 42
-
-mlflow:
-  tracking_uri: "mlruns"
-  experiment_name: "yelp_helpfulness_experiments"
-  model_name: "yelp_helpfulness_classifier"

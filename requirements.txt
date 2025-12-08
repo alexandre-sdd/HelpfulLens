@@ -1,4 +1,3 @@
-mlflow
 pandas
 numpy
 scikit-learn
@@ -8,5 +7,7 @@ jupyter
 pyyaml
 pyarrow
 nbstripout
+torch
+tqdm
 vaderSentiment
 transformers
