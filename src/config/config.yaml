@@ -34,3 +34,7 @@ training:
     class_weight: "balanced"
   validation_split: 0.2
   random_state: 42
+
+smoothing:
+  useful_rate_alpha: 1.0
+  useful_rate_beta: 5.0

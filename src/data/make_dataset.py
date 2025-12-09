@@ -15,6 +15,8 @@ from src.utils.logging_utils import get_logger
 CONFIG_PATH = Path("src/config/config.yaml")
 TRAIN_OUTPUT_NAME = "yelp_helpfulness_train.parquet"
 EVAL_OUTPUT_NAME = "yelp_helpfulness_eval.parquet"
+SMOOTH_ALPHA = 1.0
+SMOOTH_BETA = 5.0
 
 LOGGER = get_logger("make_dataset")
 
@@ -36,7 +38,11 @@ def _load_cleaned_table(name: str, cleaned_dir: Path) -> pd.DataFrame | None:
     return None
 
 
-def _engineer_basic_features(df: pd.DataFrame) -> pd.DataFrame:
+def _engineer_basic_features(
+    df: pd.DataFrame,
+    useful_alpha: float = SMOOTH_ALPHA,
+    useful_beta: float = SMOOTH_BETA,
+) -> pd.DataFrame:
     df = df.copy()
     if "review_text" in df.columns:
         df["review_char_len"] = df["review_text"].str.len()
@@ -55,6 +61,16 @@ def _engineer_basic_features(df: pd.DataFrame) -> pd.DataFrame:
     else:
         df["target_useful_votes"] = 0
         df["target_is_useful"] = 0
+
+    vote_cols = [col for col in ("useful", "funny", "cool") if col in df.columns]
+    if vote_cols:
+        df["total_votes"] = sum(df[col].fillna(0) for col in vote_cols).astype(float)
+    else:
+        df["total_votes"] = 0.0
+    df["useful_rate_smoothed"] = (
+        (df["target_useful_votes"].astype(float) + useful_alpha)
+        / (df["total_votes"] + useful_alpha + useful_beta)
+    )
     return df
 
 
@@ -138,7 +154,12 @@ def build_master_table(config: Dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
     LOGGER.info("Loaded %d review rows", len(reviews))
 
     assembled = _merge_side_tables(reviews, business, users)
-    engineered = _engineer_basic_features(assembled)
+    smoothing_cfg = config.get("smoothing", {})
+    engineered = _engineer_basic_features(
+        assembled,
+        useful_alpha=smoothing_cfg.get("useful_rate_alpha", SMOOTH_ALPHA),
+        useful_beta=smoothing_cfg.get("useful_rate_beta", SMOOTH_BETA),
+    )
 
     training_cfg = config.get("training", {})
     validation_split = training_cfg.get("validation_split", 0.2)
