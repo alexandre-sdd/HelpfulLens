@@ -27,18 +27,23 @@ features:
     max_features: 5000
     ngram_range: [1, 2]
   numeric:
-    include_review_length: true
-    include_user_stats: true
-    include_business_stats: true
+    include_review_length: false
+    include_user_stats: false
+    include_business_stats: false
 
 training:
-  model_type: "logistic_regression"
+  model_type: "linear_svc"
+  target: "target_is_useful"
   hyperparameters:
     C: 1.0
     max_iter: 1000
     class_weight: "balanced"
   validation_split: 0.2
   random_state: 42
+  sample_size: 10000
+
+evaluation:
+  sample_size: 2000  
 
 mlflow:
   tracking_uri: "mlruns"
