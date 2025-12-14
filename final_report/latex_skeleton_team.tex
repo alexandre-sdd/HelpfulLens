@@ -170,12 +170,12 @@ Run \texttt{python -m src.models.train\_and\_evaluate --config src/config/config
   \item If the hurdle classifier warns about convergence, raise \texttt{max\_iter} in \texttt{train\_and\_evaluate.py} or standardize numeric features.
 \end{itemize}
 
-\subsubsection{Latest run (before leakage fix)}
-Run ID: \texttt{20251213\_233214\_0d28} (using full feature set). A raw \texttt{useful} column leaked into the feature matrix; this was fixed after the run by dropping that column in \texttt{src/features/build\_features.py}. Numbers below therefore overstate performance for Poisson/HGB. Re-run after rebuilding features for realistic scores.
+\subsubsection{Latest run (leakage fixed)}
+Run ID: \texttt{20251214\_010535\_b35a}. Features include city/state/category one-hots and basic numeric stats (no TF-IDF or sentiment). Target-bearing columns have been dropped.
 
 \begin{table}[H]
   \centering
-  \caption{Model comparison (run \texttt{20251213\_233214\_0d28}). Lower RMSE/MAE is better; higher Spearman/ROC/PR is better.}
+  \caption{Model comparison (run \texttt{20251214\_010535\_b35a}). Lower RMSE/MAE is better; higher Spearman/ROC/PR is better.}
   \begin{tabular}{lcccccc}
     \toprule
     Model & MAE\(_{\log1p}\) & RMSE\(_{\log1p}\) & Spearman & ROC-AUC & PR-AUC \\
@@ -183,14 +183,14 @@ Run ID: \texttt{20251213\_233214\_0d28} (using full feature set). A raw \texttt{
     Baseline mean & 0.611 & 0.710 & n/a & n/a & n/a \\
     Linear (log) & 0.536 & 0.645 & 0.118 & n/a & n/a \\
     Poisson & 0.611 & 0.710 & n/a & n/a & n/a \\
-    HGB & 0.0001 & 0.0004 & 1.000 & n/a & n/a \\
-    Hurdle & 0.054 & 0.121 & 0.905 & 1.000 & 1.000 \\
+    HGB & 0.339 & 0.446 & 0.637 & n/a & n/a \\
+    Hurdle & 0.439 & 0.520 & 0.545 & 0.783 & 0.786 \\
     \bottomrule
   \end{tabular}
 \end{table}
 
 \noindent
-Warnings observed: (i) Deprecation on \texttt{datetime.utcnow()} (harmless); (ii) \texttt{RuntimeWarning} from covariance/standardization on sparse data; (iii) logistic hurdle classifier hit iteration limit (increase \texttt{max\_iter} or standardize). The target leakage fix and a rerun will address the unrealistic near-perfect HGB scores.
+Warnings observed: (i) Deprecation on \texttt{datetime.utcnow()} (harmless); (ii) \texttt{RuntimeWarning} from covariance/standardization on sparse data; (iii) logistic hurdle classifier hit iteration limit (increase \texttt{max\_iter} or standardize); (iv) benign multiprocessing resource-tracker cleanup noise. Next improvements: add text length/sentiment/TF-IDF features and retune models.
 
 % -----------------------------------------------------
 % Discussion
