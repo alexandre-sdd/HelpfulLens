@@ -34,6 +34,10 @@ from sklearn.model_selection import train_test_split
 
 CONFIG_PATH = Path("src/config/config.yaml")
 
+# Backward-compat shim for previously saved pipelines that reference this symbol
+def _sparse_to_dense(X):
+    return X.toarray() if hasattr(X, "toarray") else X
+
 
 def load_config(config_path: Path = CONFIG_PATH) -> Dict[str, Any]:
     """Load the shared project configuration."""
@@ -141,6 +145,10 @@ def evaluate(
     inferred_target = target_name or training_cfg.get("target", "target_is_useful")
     inferred_model_type = training_cfg.get("model_type", "logistic_regression")
 
+    # If evaluating on counts, drop zero-vote rows before any sampling
+    if inferred_target == "target_useful_votes" and "target_useful_votes" in df.columns:
+        df = df[df["target_useful_votes"] != 0].copy()
+
     # Optional evaluation sub-sampling
     eval_cfg = config.get("evaluation", {})
     sample_size = eval_cfg.get("sample_size", training_cfg.get("eval_sample_size", None))
@@ -170,8 +178,15 @@ def evaluate(
     model_alias = _sanitize_alias(chosen_model_name)
     pipe = load(model_path)
 
-    # Prepare X and y for the chosen target
+    # Prepare X(text Series) and y for the chosen target
     X_eval, y_eval = _prepare_text_and_target_by_name(df, inferred_target)
+    # Choose the right input to the pipeline based on recipe:
+    # - text_tfidf / text_tfidf_dense expect a text Series
+    # - text_tfidf_plus_numeric expects the full DataFrame with named columns
+    if feature_recipe == "text_tfidf_plus_numeric":
+        X_input = df
+    else:
+        X_input = X_eval
 
     # Switch by target type
     is_classification = inferred_target == "target_is_useful"
@@ -183,12 +198,12 @@ def evaluate(
     if is_classification:
         # Predict probability and label
         if hasattr(pipe, "predict_proba"):
-            y_proba = pipe.predict_proba(X_eval)[:, 1]
+            y_proba = pipe.predict_proba(X_input)[:, 1]
         elif hasattr(pipe, "decision_function"):
-            scores = pipe.decision_function(X_eval)
+            scores = pipe.decision_function(X_input)
             y_proba = 1.0 / (1.0 + np.exp(-scores))
         else:
-            y_proba = pipe.predict(X_eval).astype(float)
+            y_proba = pipe.predict(X_input).astype(float)
         y_pred = (y_proba >= 0.5).astype(int)
 
         # Classification metrics
@@ -304,7 +319,7 @@ def evaluate(
             calib_path = None
     else:
         # Regression predictions
-        y_pred = pipe.predict(X_eval).astype(float)
+        y_pred = pipe.predict(X_input).astype(float)
         # Regression metrics
         mae = float(mean_absolute_error(y_eval, y_pred))
         rmse = float(np.sqrt(mean_squared_error(y_eval, y_pred)))

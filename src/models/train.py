@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, Tuple, Optional, List
 
 import json
 import time
@@ -16,12 +16,15 @@ import pandas as pd
 import yaml
 from joblib import dump
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.compose import ColumnTransformer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import LinearSVC
 from sklearn.metrics import accuracy_score, f1_score, roc_auc_score, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, MaxAbsScaler
+from sklearn.impute import SimpleImputer
+from src.utils.data_utils import densify_sparse, to_csr_matrix
 from sklearn.model_selection import train_test_split
 
 CONFIG_PATH = Path("src/config/config.yaml")
@@ -51,7 +54,7 @@ def _load_training_data(training_dir: Path) -> pd.DataFrame:
 
 
 def _build_feature_transformer(
-    recipe: str, max_features: int, ngram_range: Tuple[int, int]
+    recipe: str, max_features: int, ngram_range: Tuple[int, int], numeric_columns: Optional[List[str]] = None
 ) -> Pipeline:
     """Return a feature transformer by recipe name."""
     if recipe == "text_tfidf":
@@ -63,14 +66,30 @@ def _build_feature_transformer(
             ("tfidf", TfidfVectorizer(
                 max_features=max_features, ngram_range=ngram_range, lowercase=True, stop_words="english"
             )),
-            ("densify", FunctionTransformer(_sparse_to_dense, accept_sparse=True)),
+            ("densify", FunctionTransformer(densify_sparse, accept_sparse=True)),
         ])
+    if recipe == "text_tfidf_plus_numeric":
+        # Combine text TF-IDF with numeric columns (kept sparse to avoid densifying TF-IDF)
+        text_transformer = TfidfVectorizer(
+            max_features=max_features, ngram_range=ngram_range, lowercase=True, stop_words="english"
+        )
+        numeric_pipeline = Pipeline(
+            steps=[
+                ("impute", SimpleImputer(strategy="median")),
+                ("scale", MaxAbsScaler()),
+                ("to_sparse", FunctionTransformer(to_csr_matrix, accept_sparse=True)),
+            ]
+        )
+        num_cols = numeric_columns or []
+        return ColumnTransformer(
+            transformers=[
+                ("text", text_transformer, "text"),
+                ("num", numeric_pipeline, num_cols),
+            ],
+            sparse_threshold=1.0,
+            remainder="drop",
+        )
     raise ValueError(f"Unknown feature recipe: {recipe}")
-
-
-def _sparse_to_dense(X):
-    return X.toarray() if hasattr(X, "toarray") else X
-
 
 def _build_estimator(model_type: str, random_state: int) -> Any:
     """Return an estimator by model_type."""
@@ -145,16 +164,54 @@ def _build_training_pipeline(
     max_features: int,
     ngram_range: Tuple[int, int],
     random_state: int,
+    numeric_columns: Optional[List[str]] = None,
 ) -> Pipeline:
     """Build a unified pipeline: features -> estimator; densify added if needed."""
-    features = _build_feature_transformer(feature_recipe, max_features, ngram_range)
+    features = _build_feature_transformer(feature_recipe, max_features, ngram_range, numeric_columns=numeric_columns)
     estimator = _build_estimator(model_type, random_state)
     steps = [("features", features)]
-    needs_dense = isinstance(estimator, RandomForestClassifier)
-    if feature_recipe == "text_tfidf" and needs_dense:
-        steps.append(("densify", FunctionTransformer(_sparse_to_dense, accept_sparse=True)))
+    needs_dense = isinstance(estimator, (RandomForestClassifier, RandomForestRegressor))
+    if needs_dense:
+        steps.append(("densify", FunctionTransformer(densify_sparse, accept_sparse=True)))
     steps.append(("classifier", estimator))
     return Pipeline(steps)
+
+
+def _select_numeric_columns(df: pd.DataFrame, features_cfg: Dict[str, Any]) -> List[str]:
+    """
+    Select numeric feature columns from the assembled dataset based on config flags.
+    Only columns that exist in df will be included.
+    """
+    numeric_cfg = features_cfg.get("numeric", {})
+    include_review_length = bool(numeric_cfg.get("include_review_length", True))
+    include_user_stats = bool(numeric_cfg.get("include_user_stats", True))
+    include_business_stats = bool(numeric_cfg.get("include_business_stats", True))
+
+    selected: List[str] = []
+    if include_review_length:
+        for col in ["review_char_len", "review_word_len"]:
+            if col in df.columns:
+                selected.append(col)
+    if include_user_stats:
+        for col in [
+            "user_review_count",
+            "user_average_stars",
+            "fans",
+            "useful_user",
+            "funny_user",
+            "cool_user",
+        ]:
+            if col in df.columns:
+                selected.append(col)
+    if include_business_stats:
+        for col in [
+            "business_stars",
+            "business_review_count",
+            "is_open",
+        ]:
+            if col in df.columns:
+                selected.append(col)
+    return selected
 
 
 def train() -> None:
@@ -182,6 +239,9 @@ def train() -> None:
     sample_size = training_cfg.get("sample_size", None)
 
     df = _load_training_data(training_dir)
+    # If doing regression on counts, drop zero-vote rows before any sampling
+    if target_name == "target_useful_votes" and "target_useful_votes" in df.columns:
+        df = df[df["target_useful_votes"] != 0].copy()
     # Optional sub-sampling from training data (e.g., 10000 rows) - random sampling
     if sample_size is not None:
         try:
@@ -194,12 +254,15 @@ def train() -> None:
             chosen = rng.choice(idx, size=sample_n, replace=False)
             df = df.iloc[chosen].copy()
     X_text, y_vec = _prepare_text_and_target(df) if target_name == "target_is_useful" else _prepare_text_and_target_by_name(df, target_name)
+    # Determine numeric columns if using combined recipe
+    numeric_columns = _select_numeric_columns(df, features_root) if feature_recipe == "text_tfidf_plus_numeric" else None
     pipe = _build_training_pipeline(
         feature_recipe=feature_recipe,
         model_type=model_type,
         max_features=max_features,
         ngram_range=ngram_range,
         random_state=random_state,
+        numeric_columns=numeric_columns,
     )
     model_name = _sanitize_name(f"{target_name}__{feature_recipe}__{model_type}")
     local_model_path = artifacts_dir / f"{model_name}.pkl"
@@ -215,16 +278,22 @@ def train() -> None:
         mlflow.log_param("target_name", target_name)
 
         # Fit
-        pipe.fit(X_text, y_vec)
+        if feature_recipe in ("text_tfidf", "text_tfidf_dense"):
+            X_input = X_text
+        elif feature_recipe == "text_tfidf_plus_numeric":
+            X_input = df
+        else:
+            X_input = X_text
+        pipe.fit(X_input, y_vec)
         # Classification vs Regression metrics
         if target_name == "target_is_useful":
             if hasattr(pipe, "predict_proba"):
-                y_proba = pipe.predict_proba(X_text)[:, 1]
+                y_proba = pipe.predict_proba(X_input)[:, 1]
             elif hasattr(pipe, "decision_function"):
-                scores = pipe.decision_function(X_text)
+                scores = pipe.decision_function(X_input)
                 y_proba = 1.0 / (1.0 + np.exp(-scores))
             else:
-                y_proba = pipe.predict(X_text).astype(float)
+                y_proba = pipe.predict(X_input).astype(float)
             y_label = (y_proba >= 0.5).astype(int)
             acc = float(accuracy_score(y_vec, y_label))
             f1 = float(f1_score(y_vec, y_label, zero_division=0))
@@ -237,7 +306,7 @@ def train() -> None:
             if np.isfinite(rocauc):
                 mlflow.log_metric("roc_auc_in_sample", rocauc)
         else:
-            y_pred = pipe.predict(X_text).astype(float)
+            y_pred = pipe.predict(X_input).astype(float)
             mae = float(mean_absolute_error(y_vec, y_pred))
             rmse = float(np.sqrt(mean_squared_error(y_vec, y_pred)))
             r2 = float(r2_score(y_vec, y_pred))
