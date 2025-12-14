@@ -25,6 +25,18 @@ features:
     include_review_length: true
     include_user_stats: true
     include_business_stats: true
+  sentiment:
+    include_sentiment_features: false
+    sentiment_path: "data/features/review_features_with_sentiment.parquet"
+  tfidf:
+    include_tfidf: false
+    max_tfidf_features: 3000
+    min_df: 5
+    ngram_range: [1, 2]
+  categories:
+    top_cities: 50
+    top_states: 20
+    top_business_categories: 30
 
 training:
   model_type: "logistic_regression"
@@ -38,3 +50,26 @@ training:
 smoothing:
   useful_rate_alpha: 1.0
   useful_rate_beta: 5.0
+
+modeling:
+  target_column: "target_useful_votes"
+  useful_positive_threshold: 0
+  random_seed: 42
+  run_output_dir: "artifacts"
+  min_total_votes: 0
+  include_models:
+    - "baseline_mean"
+    - "linear_log"
+    - "poisson"
+    - "hgb"
+    - "hurdle"
+  small_numeric_features:
+    - "review_word_len"
+    - "review_char_len"
+    - "review_weekofyear"
+    - "stars"
+    - "business_stars"
+    - "business_review_count"
+    - "user_review_count"
+    - "user_average_stars"
+    - "user_fans"

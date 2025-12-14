@@ -1,0 +1,237 @@
+% --------------------------------------------------------------------------
+% HelpfulLens Team Report
+% --------------------------------------------------------------------------
+\documentclass[11pt]{article}
+
+% -----------------------------------------------------
+% Package imports
+% -----------------------------------------------------
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{amsmath, amssymb}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{verbatim}
+
+% -----------------------------------------------------
+% Metadata
+% -----------------------------------------------------
+\title{\textbf{HelpfulLens: Modeling Yelp Review Helpfulness}\\[0.5em]
+  \large A Minimal, Reproducible Pipeline from Ingest to Models}
+\author{Team HelpfulLens\\Data Science Project}
+\date{\today}
+
+% -----------------------------------------------------
+% Code listing style
+% -----------------------------------------------------
+\definecolor{codebackground}{RGB}{248,248,248}
+\definecolor{commentcolor}{RGB}{0,128,0}
+\definecolor{stringcolor}{RGB}{168,0,0}
+\definecolor{keywordcolor}{RGB}{0,0,150}
+
+\lstset{
+  backgroundcolor=\color{codebackground},
+  frame=single,
+  rulecolor=\color{black!20},
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  keywordstyle=\color{keywordcolor}\bfseries,
+  commentstyle=\color{commentcolor}\itshape,
+  stringstyle=\color{stringcolor},
+  showstringspaces=false,
+  captionpos=b,
+  xleftmargin=0.4cm,
+  xrightmargin=0.4cm
+}
+
+% -----------------------------------------------------
+% Figure helper
+% -----------------------------------------------------
+\newcommand{\includefig}[4]{
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#2\textwidth]{#1}
+    \caption{#3}
+    \label{fig:#4}
+  \end{figure}
+}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+% -----------------------------------------------------
+% Abstract
+% -----------------------------------------------------
+\begin{abstract}
+We built HelpfulLens to study and predict the ``helpfulness'' of Yelp reviews (useful votes) with a lightweight, reproducible pipeline. The project ingests the public Yelp JSON dumps, cleans and aligns review/user/business tables, assembles train/evaluation datasets, engineers text and sentiment features, and trains a small set of transparent models (constant baseline, linear regression on log1p counts, Poisson, gradient boosting, and an optional hurdle classifier+regressor). Outputs include feature caches, metrics, plots, and model artifacts, all driven by a single YAML config and bash entrypoint. This report describes the data, preprocessing, feature engineering, modeling choices, and how to reproduce the results. Metrics populate after running the training script; figures shown come from the EDA sweep on \(\sim\)7M reviews.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+% -----------------------------------------------------
+% Introduction
+% -----------------------------------------------------
+\section{Introduction}
+\label{sec:introduction}
+
+Yelp reviews carry ``useful'' votes that reflect community judgment of review helpfulness. Predicting these counts can surface better content, inform ranking, and guide review-writing feedback. Our goal is a minimal, config-driven pipeline---no heavy MLOps---that converts raw Yelp dumps into modeling-ready features and trains baseline-to-strong models with transparent evaluation and artifacts.
+
+\subsection{Team Overview}
+We split work into ingest/clean, feature engineering, and modeling/reporting. The data engineering track handled parquet caching and schema cleaning; feature engineering covered text stats, sentiment, and categorical encodings; modeling implemented baselines and a hurdle variant plus plotting/reporting. Documentation and reproducibility (config, scripts, README) were maintained jointly.
+
+\subsection{Report Structure}
+Section~\ref{sec:methods} details data, preprocessing, and modeling choices. Section~\ref{sec:results} summarises EDA and describes how to interpret the model outputs. Sections~\ref{sec:discussion} and~\ref{sec:conclusion} discuss implications, limitations, and future work.
+
+% -----------------------------------------------------
+% Data and Methods
+% -----------------------------------------------------
+\section{Data and Methods}
+\label{sec:methods}
+
+\subsection{Data Sources}
+We use the Yelp Open Dataset (JSON format). A full pass in our EDA processed 6{,}990{,}124 reviews, 150{,}346 businesses, and 1{,}987{,}925 users. Raw files live under \texttt{data/raw/}; ingestion caches parquet shards under \texttt{data/raw/parquet/}.
+
+\subsection{Data Preparation}
+\begin{itemize}
+  \item \textbf{Ingestion} (\texttt{src/data/ingest\_raw.py}): auto-discovers JSON/JSON.GZ shards, supports chunked reads and limits, writes dataset-specific parquet.
+  \item \textbf{Cleaning} (\texttt{src/data/clean\_yelp.py}): enforces schemas, drops NAs, coerces numerics, derives date parts, parses elite flags, and saves \texttt{reviews\_clean.parquet}, \texttt{users\_clean.parquet}, \texttt{business\_clean.parquet}.
+  \item \textbf{Dataset assembly} (\texttt{src/data/make\_dataset.py}): joins review/user/business, engineers targets (\texttt{target\_useful\_votes}, smoothed rate, total votes), and splits into train/eval parquet bundles.
+  \item \textbf{Optional filters}: The modeling config allows restricting to reviews with at least \texttt{min\_total\_votes} (useful+funny+cool) to focus on well-exposed content.
+\end{itemize}
+
+\subsection{Feature Engineering}
+\begin{itemize}
+  \item \textbf{Numeric base}: vote totals, smoothed useful rate, text length (chars/words), punctuation counts, caps ratio, temporal features (week-of-year, weekend flag), business and user stats (stars, review counts, fans).
+  \item \textbf{Categorical encodings}: top cities, states, and business categories one-hot encoded with caps set in config.
+  \item \textbf{Sentiment/text}: optional merge of VADER or transformer sentiment and text stats from \texttt{scripts/feature\_engineering\_sentiment.py}; optional TF-IDF fitted on train only with configurable vocab size and n-grams.
+  \item \textbf{Schema}: \texttt{src/features/build\_features.py} outputs aligned \texttt{X\_train/X\_eval}, \texttt{y\_train/y\_eval} plus \texttt{feature\_schema.json} (feature order, dtypes, one-hot maps, imputations).
+\end{itemize}
+\textbf{Category hygiene:} before one-hotting, business categories are split, de-duplicated per business, and generic parents (Restaurants, Food, Hotels \& Travel, Nightlife, etc.) are dropped so the resulting indicators focus on meaningful subcategories (e.g., Mexican, Pizza, Nail Salons).
+
+\subsection{Data Selection and Leakage Controls}
+To focus on exposed content and avoid label leakage:
+\begin{itemize}
+  \item We optionally filter to reviews with at least \texttt{min\_total\_votes} (useful+funny+cool) via the modeling config.
+  \item Target-bearing columns (\texttt{useful}, \texttt{total\_votes}, smoothed targets) are dropped from features; schema checks enforce no duplicates and aligned train/eval columns.
+  \item TF-IDF is fit on train only and applied to eval; sentiment merges are optional and key-validated.
+\end{itemize}
+
+\subsection{Modeling Approach}
+Implemented in \texttt{src/models/train\_and\_evaluate.py}:
+\begin{itemize}
+  \item \textbf{Baseline mean}: constant prediction of global mean useful.
+  \item \textbf{Linear (log space)}: linear regression on \(\log(1+\text{useful})\) with a small numeric set.
+  \item \textbf{Poisson}: \texttt{PoissonRegressor} on count targets.
+  \item \textbf{Tree}: \texttt{HistGradientBoostingRegressor} on \(\log(1+\text{useful})\).
+  \item \textbf{Hurdle (optional)}: logistic classifier for useful\(>0\) + regressor for positive counts; combines probability and conditional expectation.
+\end{itemize}
+
+\subsection{Evaluation Metrics}
+Regression: MAE and RMSE on \(\log(1+\text{useful})\), and Spearman correlation between predictions and true useful. Classification (hurdle): ROC-AUC and PR-AUC for useful\(>0\). Plots: true vs.\ predicted scatter (log scale), residuals vs.\ length, histograms of \(\log(1+\text{useful})\), and if applicable PR + calibration curves.
+
+\subsection{Reproducible Workflow}
+The main entrypoint \texttt{./scripts/run\_data\_pipeline.sh} chains ingest \(\rightarrow\) clean \(\rightarrow\) dataset assembly \(\rightarrow\) feature build \(\rightarrow\) modeling. Toggles in \texttt{src/config/config.yaml} control sentiment, TF-IDF, category caps, min vote filter, and model list. Artifacts (metrics, plots, model.joblib, preds) are written to \texttt{artifacts/<run\_id>/}.
+
+% -----------------------------------------------------
+% Results
+% -----------------------------------------------------
+\section{Results}
+\label{sec:results}
+
+\subsection{EDA Highlights}
+The distribution of helpfulness is extremely skewed: median useful is 0, with a long tail (max 1182). City- and category-level averages vary (e.g., Reno and Edmonton lead in mean helpful votes). Length and sentiment correlate positively with usefulness, and user reputation (fans/review count) also aligns with helpfulness.
+
+\includefig{../reports/eda/figures/helpful_distribution.png}{0.65}{Distribution of \(\log(1+\text{useful})\) on the review sample.}{helpfuldist}
+
+\includefig{../reports/eda/figures/helpful_vs_funny.png}{0.6}{Relationship between helpful and funny votes (sample scatter).}{helpfulfunny}
+
+\subsection{Model Outputs}
+Run \texttt{python -m src.models.train\_and\_evaluate --config src/config/config.yaml} to populate metrics and plots. A typical artifact bundle includes:
+\begin{itemize}
+  \item \texttt{metrics.json}: MAE/RMSE (log1p) and Spearman for each model; ROC/PR for hurdle.
+  \item \texttt{preds\_eval.parquet}: true vs.\ predicted useful counts (and hurdle probabilities).
+  \item Figures: true vs.\ predicted scatter, residuals vs.\ length, histogram overlay; PR \& calibration if hurdle enabled.
+\end{itemize}
+
+\subsubsection{Current best practices (post-leakage fix)}
+\begin{itemize}
+  \item Drop \texttt{useful} and \texttt{total\_votes} from features to avoid leakage.
+  \item Consider \texttt{min\_total\_votes} \(\geq\) 1--3 to train on reviews with real exposure.
+  \item If the hurdle classifier warns about convergence, raise \texttt{max\_iter} in \texttt{train\_and\_evaluate.py} or standardize numeric features.
+\end{itemize}
+
+\subsubsection{Latest run (before leakage fix)}
+Run ID: \texttt{20251213\_233214\_0d28} (using full feature set). A raw \texttt{useful} column leaked into the feature matrix; this was fixed after the run by dropping that column in \texttt{src/features/build\_features.py}. Numbers below therefore overstate performance for Poisson/HGB. Re-run after rebuilding features for realistic scores.
+
+\begin{table}[H]
+  \centering
+  \caption{Model comparison (run \texttt{20251213\_233214\_0d28}). Lower RMSE/MAE is better; higher Spearman/ROC/PR is better.}
+  \begin{tabular}{lcccccc}
+    \toprule
+    Model & MAE\(_{\log1p}\) & RMSE\(_{\log1p}\) & Spearman & ROC-AUC & PR-AUC \\
+    \midrule
+    Baseline mean & 0.611 & 0.710 & n/a & n/a & n/a \\
+    Linear (log) & 0.536 & 0.645 & 0.118 & n/a & n/a \\
+    Poisson & 0.611 & 0.710 & n/a & n/a & n/a \\
+    HGB & 0.0001 & 0.0004 & 1.000 & n/a & n/a \\
+    Hurdle & 0.054 & 0.121 & 0.905 & 1.000 & 1.000 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\noindent
+Warnings observed: (i) Deprecation on \texttt{datetime.utcnow()} (harmless); (ii) \texttt{RuntimeWarning} from covariance/standardization on sparse data; (iii) logistic hurdle classifier hit iteration limit (increase \texttt{max\_iter} or standardize). The target leakage fix and a rerun will address the unrealistic near-perfect HGB scores.
+
+% -----------------------------------------------------
+% Discussion
+% -----------------------------------------------------
+\section{Discussion}
+\label{sec:discussion}
+
+Length, sentiment, and user reputation are informative, but the heavy zero inflation suggests hurdle or zero-inflated approaches are appropriate. TF-IDF and transformer sentiment can boost performance but increase runtime; the config keeps them optional. Filtering to reviews with sufficient total votes focuses learning on content with real exposure and mitigates noise from never-seen reviews.
+
+\subsection{Practical Implications}
+The pipeline can rank recent reviews by predicted helpfulness, surface candidates for featuring, or give authors feedback on likely impact. Lightweight dependencies and parquet caching make it easy to refresh when new dumps arrive.
+
+\subsection{Future Work}
+Add calibrated uncertainty estimates, experiment with gradient-boosted trees on raw counts (Tweedie), and integrate a simple serving notebook for batch scoring. More granular temporal features and business-level priors (e.g., hierarchical smoothing) could reduce variance for sparse entities.
+
+% -----------------------------------------------------
+% Conclusion
+% -----------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+
+HelpfulLens delivers an end-to-end, minimal pipeline for Yelp helpfulness modeling: raw data ingestion, cleaning, dataset assembly, feature building, and baseline-to-strong models with clear artifacts. The config-first design keeps runs reproducible and easy to extend with richer features or alternative models.
+
+% -----------------------------------------------------
+% Acknowledgements
+% -----------------------------------------------------
+\section*{Acknowledgements}
+
+Thanks to the Yelp Open Dataset for providing the data, and to the team members who split data engineering, feature design, and modeling/reporting duties. Open-source libraries (pandas, numpy, scikit-learn, matplotlib) underpin the entire pipeline.
+
+% -----------------------------------------------------
+% References
+% -----------------------------------------------------
+\begin{thebibliography}{9}
+
+\bibitem{yelp}
+Yelp Open Dataset. \url{https://www.yelp.com/dataset}.
+
+\bibitem{sklearn}
+Pedregosa, F. et al. \textit{Scikit-learn: Machine Learning in Python}. JMLR 12, 2825--2830, 2011.
+
+\end{thebibliography}
+
+\end{document}

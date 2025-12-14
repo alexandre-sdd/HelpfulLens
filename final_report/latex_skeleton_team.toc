@@ -1,0 +1,20 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Team Overview}{3}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Report Structure}{3}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Data and Methods}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Data Sources}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Data Preparation}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Feature Engineering}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Data Selection and Leakage Controls}{4}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Modeling Approach}{4}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Evaluation Metrics}{4}{subsection.2.6}%
+\contentsline {subsection}{\numberline {2.7}Reproducible Workflow}{4}{subsection.2.7}%
+\contentsline {section}{\numberline {3}Results}{5}{section.3}%
+\contentsline {subsection}{\numberline {3.1}EDA Highlights}{5}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}Model Outputs}{6}{subsection.3.2}%
+\contentsline {subsubsection}{\numberline {3.2.1}Current best practices (post-leakage fix)}{6}{subsubsection.3.2.1}%
+\contentsline {subsubsection}{\numberline {3.2.2}Latest run (before leakage fix)}{6}{subsubsection.3.2.2}%
+\contentsline {section}{\numberline {4}Discussion}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Practical Implications}{7}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Future Work}{7}{subsection.4.2}%
+\contentsline {section}{\numberline {5}Conclusion}{7}{section.5}%

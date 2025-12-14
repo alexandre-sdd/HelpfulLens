@@ -1,0 +1,11 @@
+[run_data_pipeline] Starting ingest_raw step
+[run_data_pipeline] Running: python -m src.data.ingest_raw --config src/config/config.yaml --datasets business reviews users
+[run_data_pipeline] Starting clean_yelp step
+[run_data_pipeline] Running: python -m src.data.clean_yelp --config src/config/config.yaml --datasets reviews users business
+[run_data_pipeline] Starting make_dataset step
+[run_data_pipeline] Running: python -m src.data.make_dataset --config src/config/config.yaml
+[run_data_pipeline] Starting build_features step
+[run_data_pipeline] Running: python -m src.features.build_features --config src/config/config.yaml
+[run_data_pipeline] Starting train_and_evaluate step
+[run_data_pipeline] Running: python -m src.models.train_and_evaluate --config src/config/config.yaml
+[run_data_pipeline] Pipeline finished successfully.

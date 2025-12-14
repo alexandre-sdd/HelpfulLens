@@ -42,6 +42,21 @@ No editable install is needed; run commands from the repo root. Transformers scr
 ```
 Tunable env vars: `CONFIG` (alt config file), `INGEST_DATASETS`, `CLEAN_DATASETS`, `ROWS_PER_CHUNK`, `INGEST_LIMIT`, `CLEAN_LIMIT`, and `FORCE=1` to overwrite existing parquet outputs. Results land in `data/raw/parquet/`, `data/cleaned/`, and `data/datasets/{training,evaluation}/`.
 
+## Features + Modeling
+- Build aligned train/eval feature matrices (numeric + optional city/state/category one-hots, optional TF-IDF, optional sentiment merge):
+```bash
+python -m src.features.build_features --config src/config/config.yaml
+```
+- Train/evaluate baselines, Poisson, tree regressor, and optional hurdle model; artifacts (metrics, plots, model.joblib, preds) are saved under `artifacts/<run_id>/`:
+```bash
+python -m src.models.train_and_evaluate --config src/config/config.yaml
+```
+- To restrict training/eval to “popular” reviews, set `modeling.min_total_votes` in `src/config/config.yaml` (uses the `total_votes` feature built from useful+funny+cool).
+- The pipeline script now runs end-to-end (ingest → clean → make_dataset → build_features → train/evaluate). Set `SKIP_BUILD_FEATURES=1` or `SKIP_MODELING=1` to bypass the new steps:
+```bash
+SKIP_BUILD_FEATURES=1 ./scripts/run_data_pipeline.sh   # stop before modeling
+```
+
 ## Feature engineering & sentiment
 - Full feature pass (VADER by default):
 ```bash

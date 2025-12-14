@@ -11,6 +11,8 @@ ROWS_PER_CHUNK="${ROWS_PER_CHUNK:-}"
 FORCE="${FORCE:-0}"
 INGEST_LIMIT="${INGEST_LIMIT:-}"
 CLEAN_LIMIT="${CLEAN_LIMIT:-}"
+SKIP_BUILD_FEATURES="${SKIP_BUILD_FEATURES:-0}"
+SKIP_MODELING="${SKIP_MODELING:-0}"
 
 IFS=' ' read -r -a ingest_array <<< "${INGEST_DATASETS}"
 IFS=' ' read -r -a clean_array <<< "${CLEAN_DATASETS}"
@@ -55,5 +57,19 @@ run_cmd "${clean_cmd[@]}"
 
 log "Starting make_dataset step"
 run_cmd python -m src.data.make_dataset --config "${CONFIG}"
+
+if [[ "${SKIP_BUILD_FEATURES}" == "1" || "${SKIP_BUILD_FEATURES}" == "true" ]]; then
+    log "Skipping build_features step"
+else
+    log "Starting build_features step"
+    run_cmd python -m src.features.build_features --config "${CONFIG}"
+fi
+
+if [[ "${SKIP_MODELING}" == "1" || "${SKIP_MODELING}" == "true" ]]; then
+    log "Skipping modeling step"
+else
+    log "Starting train_and_evaluate step"
+    run_cmd python -m src.models.train_and_evaluate --config "${CONFIG}"
+fi
 
 log "Pipeline finished successfully."
