@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  13 DEC 2025 19:48
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2025.3.8)  14 DEC 2025 02:19
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -342,7 +342,8 @@ Package: verbatim 2024-01-22 v1.5x LaTeX2e package for verbatim enhancements
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count315
 \l__pdf_internal_box=\box58
-) (./latex_skeleton_team.aux)
+)
+No file latex_skeleton_team.aux.
 \openout1 = `latex_skeleton_team.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 65.
@@ -363,7 +364,6 @@ LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 65.
 LaTeX Font Info:    ... okay on input line 65.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 65.
 LaTeX Font Info:    ... okay on input line 65.
-
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
 *geometry* verbose mode - [ preamble ] result:
@@ -423,7 +423,6 @@ Package caption Info: hyperref package is loaded.
 Package caption Info: listings package is loaded.
 Package caption Info: End \AtBeginDocument code.
 Package hyperref Info: Link coloring OFF on input line 65.
- (./latex_skeleton_team.out) (./latex_skeleton_team.out)
 \@outlinefile=\write3
 \openout3 = `latex_skeleton_team.out'.
 
@@ -439,13 +438,27 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 [1
 
-{/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}] (./latex_skeleton_team.toc)
+{/usr/local/texlive/2025/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+No file latex_skeleton_team.toc.
 \tf@toc=\write4
 \openout4 = `latex_skeleton_team.toc'.
 
 
 
 [2]
+
+LaTeX Warning: Reference `sec:methods' on page 3 undefined on input line 93.
+
+
+LaTeX Warning: Reference `sec:results' on page 3 undefined on input line 93.
+
+
+LaTeX Warning: Reference `sec:discussion' on page 3 undefined on input line 93.
+
+
+LaTeX Warning: Reference `sec:conclusion' on page 3 undefined on input line 93.
+
+
 Overfull \hbox (20.01192pt too wide) in paragraph at lines 109--110
 []\OT1/cmr/bx/n/10.95 Optional fil-ters\OT1/cmr/m/n/10.95 : The mod-el-ing con-fig al-lows re-strict-ing to re-views with at least \OT1/cmtt/m/n/10.95 min[]total[]votes
  []
@@ -460,53 +473,177 @@ Overfull \hbox (15.56665pt too wide) in paragraph at lines 117--118
 
 
 [4]
-<../reports/eda/figures/helpful_distribution.png, id=134, 462.528pt x 346.896pt>
+<../reports/eda/figures/helpful_distribution.png, id=41, 462.528pt x 346.896pt>
 File: ../reports/eda/figures/helpful_distribution.png Graphic file (type png)
 <use ../reports/eda/figures/helpful_distribution.png>
-Package pdftex.def Info: ../reports/eda/figures/helpful_distribution.png  used on input line 154.
+Package pdftex.def Info: ../reports/eda/figures/helpful_distribution.png  used on input line 155.
 (pdftex.def)             Requested size: 305.33789pt x 229.01558pt.
-<../reports/eda/figures/helpful_vs_funny.png, id=136, 462.528pt x 346.896pt>
+
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:157: Undefined control sequence.
+l.157 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/helpful_vs_cool.png, id=43, 462.528pt x 346.896pt>
+File: ../reports/eda/figures/helpful_vs_cool.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_vs_cool.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_vs_cool.png  used on input line 160.
+(pdftex.def)             Requested size: 225.4804pt x 169.11243pt.
+<../reports/eda/figures/helpful_vs_funny.png, id=44, 462.528pt x 346.896pt>
 File: ../reports/eda/figures/helpful_vs_funny.png Graphic file (type png)
 <use ../reports/eda/figures/helpful_vs_funny.png>
-Package pdftex.def Info: ../reports/eda/figures/helpful_vs_funny.png  used on input line 156.
+Package pdftex.def Info: ../reports/eda/figures/helpful_vs_funny.png  used on input line 161.
+(pdftex.def)             Requested size: 225.4804pt x 169.11243pt.
+
+
+[5 <../reports/eda/figures/helpful_distribution.png> <../reports/eda/figures/helpful_vs_cool.png>]
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:163: Undefined control sequence.
+l.163 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/helpful_by_user_fans.png, id=57, 462.528pt x 346.896pt>
+File: ../reports/eda/figures/helpful_by_user_fans.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_user_fans.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_user_fans.png  used on input line 166.
 (pdftex.def)             Requested size: 281.85587pt x 211.39981pt.
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:168: Undefined control sequence.
+l.168 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/helpful_by_length_decile.png, id=58, 722.7pt x 289.08pt>
+File: ../reports/eda/figures/helpful_by_length_decile.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_length_decile.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_length_decile.png  used on input line 171.
+(pdftex.def)             Requested size: 281.85587pt x 112.74074pt.
 
 
-[5 <../reports/eda/figures/helpful_distribution.png> <../reports/eda/figures/helpful_vs_funny.png>]
-Overfull \hbox (20.54243pt too wide) in paragraph at lines 174--175
-\OT1/cmr/m/n/10.95 ture ma-trix; this was fixed af-ter the run by drop-ping that col-umn in \OT1/cmtt/m/n/10.95 src/features/build[]features.py\OT1/cmr/m/n/10.95 .
- []
+[6 <../reports/eda/figures/helpful_vs_funny.png> <../reports/eda/figures/helpful_by_user_fans.png>]
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:173: Undefined control sequence.
+l.173 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/helpful_by_category.png, id=69, 722.7pt x 361.35pt>
+File: ../reports/eda/figures/helpful_by_category.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_category.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_category.png  used on input line 176.
+(pdftex.def)             Requested size: 225.4804pt x 112.73964pt.
+<../reports/eda/figures/helpful_by_city.png, id=70, 722.7pt x 289.08pt>
+File: ../reports/eda/figures/helpful_by_city.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_city.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_city.png  used on input line 177.
+(pdftex.def)             Requested size: 225.4804pt x 90.19171pt.
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:179: Undefined control sequence.
+l.179 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/helpful_by_month.png, id=71, 462.528pt x 346.896pt>
+File: ../reports/eda/figures/helpful_by_month.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_month.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_month.png  used on input line 182.
+(pdftex.def)             Requested size: 225.4804pt x 169.11243pt.
+<../reports/eda/figures/helpful_by_weekday.png, id=72, 578.16pt x 289.08pt>
+File: ../reports/eda/figures/helpful_by_weekday.png Graphic file (type png)
+<use ../reports/eda/figures/helpful_by_weekday.png>
+Package pdftex.def Info: ../reports/eda/figures/helpful_by_weekday.png  used on input line 183.
+(pdftex.def)             Requested size: 225.4804pt x 112.73633pt.
+
+
+[7 <../reports/eda/figures/helpful_by_length_decile.png> <../reports/eda/figures/helpful_by_category.png> <../reports/eda/figures/helpful_by_city.png>]
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:185: Undefined control sequence.
+l.185 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
+
+<../reports/eda/figures/correlation_heatmap.png, id=86, 722.7pt x 578.16pt>
+File: ../reports/eda/figures/correlation_heatmap.png Graphic file (type png)
+<use ../reports/eda/figures/correlation_heatmap.png>
+Package pdftex.def Info: ../reports/eda/figures/correlation_heatmap.png  used on input line 188.
+(pdftex.def)             Requested size: 305.33789pt x 244.27235pt.
+
+
+[8 <../reports/eda/figures/helpful_by_month.png> <../reports/eda/figures/helpful_by_weekday.png>]
+/Users/alexandresepulvedadedietrich/Code/HelpfulLens/final_report/latex_skeleton_team.tex:190: Undefined control sequence.
+l.190 \FloatBarrier
+                   
+The control sequence at the end of the top line
+of your error message was never \def'ed. If you have
+misspelled it (e.g., `\hobx'), type `I' and the correct
+spelling (e.g., `I\hbox'). Otherwise just continue,
+and I'll forget about whatever was undefined.
 
 
 
-[6]
-Overfull \hbox (14.90471pt too wide) in paragraph at lines 207--208
+[9 <../reports/eda/figures/correlation_heatmap.png>]
+Overfull \hbox (14.90471pt too wide) in paragraph at lines 241--242
 \OT1/cmr/m/n/10.95 Add cal-i-brated un-cer-tainty es-ti-mates, ex-per-i-ment with gradient-boosted trees on raw counts (Tweedie),
  []
 
 
 
-[7] (./latex_skeleton_team.aux)
+[10]
+
+[11] (./latex_skeleton_team.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
  ***********
-Package rerunfilecheck Info: File `latex_skeleton_team.out' has not changed.
-(rerunfilecheck)             Checksum: 384E0DDFB4FA54E060E38381A6724BFE;2961.
+
+
+LaTeX Warning: There were undefined references.
+
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+
+Package rerunfilecheck Warning: File `latex_skeleton_team.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
+
+Package rerunfilecheck Info: Checksums for `latex_skeleton_team.out':
+(rerunfilecheck)             Before: <no file>
+(rerunfilecheck)             After:  F544A02B5F374F9D866999C86E5308AA;2933.
  ) 
 Here is how much of TeX's memory you used:
- 13742 strings out of 473190
- 214692 string characters out of 5715801
- 624910 words of memory out of 5000000
- 36798 multiletter control sequences out of 15000+600000
+ 13793 strings out of 473190
+ 217376 string characters out of 5715801
+ 623520 words of memory out of 5000000
+ 36838 multiletter control sequences out of 15000+600000
  569718 words of font info for 78 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,11n,79p,949b,514s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,949b,560s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2025/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on latex_skeleton_team.pdf (7 pages, 263772 bytes).
+Output written on latex_skeleton_team.pdf (11 pages, 1060458 bytes).
 PDF statistics:
- 221 PDF objects out of 1000 (max. 8388607)
- 184 compressed objects within 2 object streams
- 36 named destinations out of 1000 (max. 500000)
- 171 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 189 PDF objects out of 1000 (max. 8388607)
+ 132 compressed objects within 2 object streams
+ 55 named destinations out of 1000 (max. 500000)
+ 51 words of extra memory for PDF output out of 10000 (max. 10000000)
 

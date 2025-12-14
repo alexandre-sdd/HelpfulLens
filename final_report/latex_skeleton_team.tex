@@ -149,11 +149,45 @@ The main entrypoint \texttt{./scripts/run\_data\_pipeline.sh} chains ingest \(\r
 \label{sec:results}
 
 \subsection{EDA Highlights}
-The distribution of helpfulness is extremely skewed: median useful is 0, with a long tail (max 1182). City- and category-level averages vary (e.g., Reno and Edmonton lead in mean helpful votes). Length and sentiment correlate positively with usefulness, and user reputation (fans/review count) also aligns with helpfulness.
+We examine how \emph{helpful} votes relate to popularity signals (cool/funny, author reputation), content signals (length/category), and context (city/time). Figures come from the 7M-review sweep in \texttt{reports/eda/figures}.
 
-\includefig{../reports/eda/figures/helpful_distribution.png}{0.65}{Distribution of \(\log(1+\text{useful})\) on the review sample.}{helpfuldist}
+\paragraph{Zero inflation and tails.}
+\includefig{../reports/eda/figures/helpful_distribution.png}{0.65}{Distribution of \(\log(1+\text{helpful})\).}{helpfuldist}
+Most reviews have zero helpful votes; a small tail reaches 1{,}000+. This heavy skew motivates log transforms and the hurdle formulation.
+\FloatBarrier
 
-\includefig{../reports/eda/figures/helpful_vs_funny.png}{0.6}{Relationship between helpful and funny votes (sample scatter).}{helpfulfunny}
+\paragraph{Popularity vs. helpfulness.}
+\includefig{../reports/eda/figures/helpful_vs_cool.png}{0.48}{Helpful vs.\ cool votes (sample).}{helpfulcool}
+\includefig{../reports/eda/figures/helpful_vs_funny.png}{0.48}{Helpful vs.\ funny votes (sample).}{helpfulfunny}
+Helpful correlates with cool/funny (shared popularity). These are treated as exposure controls rather than targets.
+\FloatBarrier
+
+\paragraph{Author reputation.}
+\includefig{../reports/eda/figures/helpful_by_user_fans.png}{0.6}{Mean helpful by user fan bins.}{helpfulfans}
+High-fan authors get substantially more helpful votes, highlighting visibility bias; fan count is kept as a confounder feature.
+\FloatBarrier
+
+\paragraph{Content signals.}
+\includefig{../reports/eda/figures/helpful_by_length_decile.png}{0.6}{Mean helpful by review length decile.}{lengthdecile}
+Longer reviews earn more helpful votes (monotonic, accelerating in top deciles), so length features are useful but not sufficient on their own.
+\FloatBarrier
+
+\paragraph{Place and category.}
+\includefig{../reports/eda/figures/helpful_by_category.png}{0.48}{Mean helpful by category (top 20).}{helpfulcat}
+\includefig{../reports/eda/figures/helpful_by_city.png}{0.48}{Mean helpful by city (top 15).}{helpfulcity}
+Certain cuisines and locales attract more helpful votes, suggesting audience density effects.
+\FloatBarrier
+
+\paragraph{Temporal effects.}
+\includefig{../reports/eda/figures/helpful_by_month.png}{0.48}{Mean helpful by month.}{helpfulmonth}
+\includefig{../reports/eda/figures/helpful_by_weekday.png}{0.48}{Mean helpful by weekday.}{helpfulweekday}
+Seasonality and weekday effects are mild; we keep them as controls.
+\FloatBarrier
+
+\paragraph{Correlations.}
+\includefig{../reports/eda/figures/correlation_heatmap.png}{0.65}{Spearman correlation among numeric features.}{corrheat}
+Length measures correlate moderately with helpful; star ratings are weak; sentiment (when included) aligns more with rating than helpfulness. No single feature dominates, reinforcing multi-signal models.
+\FloatBarrier
 
 \subsection{Model Outputs}
 Run \texttt{python -m src.models.train\_and\_evaluate --config src/config/config.yaml} to populate metrics and plots. A typical artifact bundle includes:

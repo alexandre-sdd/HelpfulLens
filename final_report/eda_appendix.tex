@@ -1,0 +1,75 @@
+% -----------------------------------------------------
+% HelpfulLens EDA Appendix (standalone)
+% -----------------------------------------------------
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{placeins}
+
+\title{\textbf{HelpfulLens EDA Appendix}\\[0.5em]Skew, Exposure, and Context for Helpful Votes}
+\author{Team HelpfulLens}
+\date{\today}
+
+\newcommand{\includefig}[4]{
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=#2\textwidth]{#1}
+    \caption{#3}
+    \label{fig:#4}
+  \end{figure}
+}
+
+\begin{document}
+\maketitle
+
+\section{Key Takeaways}
+\begin{itemize}
+  \item Helpful votes are zero-inflated and heavy-tailed; a hurdle/log setup is appropriate.
+  \item Popularity effects matter: cool/funny votes and author fans correlate with helpfulness.
+  \item Content length, category, and city explain meaningful variation; temporal effects are mild.
+  \item No single feature dominates; multi-signal models are necessary.
+\end{itemize}
+
+\section{Figures (from \texttt{reports/eda/figures})}
+\includefig{../reports/eda/figures/helpful_distribution.png}{0.65}{Distribution of \(\log(1+\text{helpful})\).}{helpfuldist}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/helpful_vs_cool.png}{0.48}{Helpful vs.\ cool votes (sample).}{helpfulcool}
+\includefig{../reports/eda/figures/helpful_vs_funny.png}{0.48}{Helpful vs.\ funny votes (sample).}{helpfulfunny}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/helpful_by_user_fans.png}{0.6}{Mean helpful by user fan bins.}{helpfulfans}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/helpful_by_length_decile.png}{0.6}{Mean helpful by review length decile.}{lengthdecile}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/helpful_by_category.png}{0.48}{Mean helpful by category (top 20).}{helpfulcat}
+\includefig{../reports/eda/figures/helpful_by_city.png}{0.48}{Mean helpful by city (top 15).}{helpfulcity}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/helpful_by_month.png}{0.48}{Mean helpful by month.}{helpfulmonth}
+\includefig{../reports/eda/figures/helpful_by_weekday.png}{0.48}{Mean helpful by weekday.}{helpfulweekday}
+\FloatBarrier
+
+\includefig{../reports/eda/figures/correlation_heatmap.png}{0.65}{Spearman correlation among numeric features.}{corrheat}
+\FloatBarrier
+
+\section{How to Regenerate}
+Run the refined EDA helper (uses cleaned parquet + normalized categories):
+\begin{verbatim}
+python scripts/eda_refined.py \
+  --review-path data/cleaned/reviews_clean.parquet \
+  --business-path data/cleaned/business_clean.parquet \
+  --user-path data/cleaned/users_clean.parquet \
+  --out-dir reports/eda_refined
+\end{verbatim}
+This writes refreshed figures and \texttt{reports/eda\_refined/eda\_refined\_summary.md}.
+
+\input{eda_refined_section.tex}
+
+\end{document}

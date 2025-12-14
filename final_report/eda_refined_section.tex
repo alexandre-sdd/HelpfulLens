@@ -1,0 +1,48 @@
+% -----------------------------------------------------
+% HelpfulLens Refined EDA Section (standalone snippet)
+% -----------------------------------------------------
+\section{Refined EDA: Exposure vs. Helpfulness}
+\label{sec:eda_refined}
+
+This section summarizes the refined exploratory analysis built from cleaned parquets (7M reviews). Figures come from \texttt{reports/eda\_refined/figures} (generated via \texttt{scripts/eda\_refined.py}).
+
+\paragraph{Skew and zero inflation.}
+\includefig{../reports/eda_refined/figures/helpful_distribution.png}{0.6}{Heavy skew in helpful votes; most reviews have zero, a small tail exceeds 1{,}000.}{eda_helpful_dist}
+
+\paragraph{Popularity vs. helpfulness.}
+\includefig{../reports/eda_refined/figures/helpful_vs_cool.png}{0.48}{Helpful vs.\ cool votes (sample).}{eda_helpful_cool}
+\includefig{../reports/eda_refined/figures/helpful_vs_funny.png}{0.48}{Helpful vs.\ funny votes (sample).}{eda_helpful_funny}
+Helpful correlates with cool/funny (shared exposure), so these are exposure controls, not targets.
+
+\paragraph{Author reputation.}
+\includefig{../reports/eda_refined/figures/helpful_by_user_fans.png}{0.6}{Mean helpful by user fan bins.}{eda_helpful_fans}
+High-fan authors attract more helpful votes; fan count is a key confounder for visibility.
+
+\paragraph{Content length.}
+\includefig{../reports/eda_refined/figures/helpful_by_length_decile.png}{0.6}{Mean helpful by review length decile.}{eda_length}
+Longer reviews earn more helpful votes (monotonic trend), but length alone is not sufficient.
+
+\paragraph{Place and category.}
+\includefig{../reports/eda_refined/figures/helpful_by_category.png}{0.48}{Mean helpful by business category (top 20).}{eda_category}
+\includefig{../reports/eda_refined/figures/helpful_by_city.png}{0.48}{Mean helpful by city (top 15).}{eda_city}
+Certain cuisines and locales drive higher helpfulness, reflecting audience/density effects.
+
+\paragraph{Temporal patterns.}
+\includefig{../reports/eda_refined/figures/helpful_by_month.png}{0.48}{Mean helpful by month.}{eda_month}
+\includefig{../reports/eda_refined/figures/helpful_by_weekday.png}{0.48}{Mean helpful by weekday.}{eda_weekday}
+Seasonality/weekday effects are mild; included as controls.
+
+\paragraph{Correlations.}
+\includefig{../reports/eda_refined/figures/correlation_heatmap.png}{0.6}{Spearman correlation among numeric features.}{eda_corr}
+Length correlates moderately with helpful; star ratings are weak; no single feature dominates, supporting multi-signal models (length + reputation + context).
+
+\paragraph{Reproducibility.}
+Regenerate figures with:
+\begin{verbatim}
+python scripts/eda_refined.py \
+  --review-path data/cleaned/reviews_clean.parquet \
+  --business-path data/cleaned/business_clean.parquet \
+  --user-path data/cleaned/users_clean.parquet \
+  --out-dir reports/eda_refined
+\end{verbatim}
+
