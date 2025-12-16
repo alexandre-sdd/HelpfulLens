@@ -22,11 +22,28 @@ LOGGER = get_logger("make_dataset")
 
 
 def load_config(config_path: Path = CONFIG_PATH) -> Dict:
+    """Load the shared YAML configuration.
+
+    Args:
+        config_path: Path to the config YAML file.
+
+    Returns:
+        Parsed configuration dictionary.
+    """
     with config_path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle)
 
 
 def _load_cleaned_table(name: str, cleaned_dir: Path) -> pd.DataFrame | None:
+    """Load a cleaned parquet table, supporting legacy filenames.
+
+    Args:
+        name: Base dataset name (reviews, users, business).
+        cleaned_dir: Directory containing cleaned parquet files.
+
+    Returns:
+        Loaded DataFrame or ``None`` if no file is found.
+    """
     candidates = [
         cleaned_dir / f"{name}_clean.parquet",
         cleaned_dir / f"{name}.parquet",
@@ -43,6 +60,16 @@ def _engineer_basic_features(
     useful_alpha: float = SMOOTH_ALPHA,
     useful_beta: float = SMOOTH_BETA,
 ) -> pd.DataFrame:
+    """Add target columns, vote aggregates, and simple review metadata.
+
+    Args:
+        df: Cleaned reviews merged with side tables.
+        useful_alpha: Prior alpha parameter for useful rate smoothing.
+        useful_beta: Prior beta parameter for useful rate smoothing.
+
+    Returns:
+        DataFrame with derived targets, lengths, and smoothed rates.
+    """
     df = df.copy()
     if "review_text" in df.columns:
         df["review_char_len"] = df["review_text"].str.len()
@@ -77,6 +104,16 @@ def _engineer_basic_features(
 def _merge_side_tables(
     reviews: pd.DataFrame, business: pd.DataFrame | None, users: pd.DataFrame | None
 ) -> pd.DataFrame:
+    """Merge business and user attributes into the review frame.
+
+    Args:
+        reviews: Reviews DataFrame containing identifiers.
+        business: Optional business attributes keyed by ``business_id``.
+        users: Optional user attributes keyed by ``user_id``.
+
+    Returns:
+        Reviews DataFrame with side-table columns joined when available.
+    """
     df = reviews.copy()
     if business is not None and "business_id" in business.columns:
         business_cols = [
@@ -117,6 +154,16 @@ def _merge_side_tables(
 def _split_train_eval(
     df: pd.DataFrame, validation_split: float, random_state: int
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Split into train/eval sets with optional stratification on usefulness.
+
+    Args:
+        df: Engineered DataFrame containing ``target_is_useful`` when available.
+        validation_split: Fraction of rows allocated to the evaluation set.
+        random_state: Seed for reproducible splits.
+
+    Returns:
+        Tuple of (train_df, eval_df); returns empty eval_df when input is tiny.
+    """
     if df.empty or len(df) < 2:
         return df, df.iloc[0:0]
     stratify = None
@@ -134,6 +181,17 @@ def _split_train_eval(
 
 
 def build_master_table(config: Dict) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Assemble cleaned tables into train/eval parquet datasets.
+
+    Args:
+        config: Parsed configuration dictionary.
+
+    Returns:
+        Tuple of (train_df, eval_df) after feature engineering and splitting.
+
+    Raises:
+        FileNotFoundError: If the cleaned reviews parquet is missing.
+    """
     data_cfg = config.get("data", {})
     cleaned_cfg = data_cfg.get("cleaned", {})
     datasets_cfg = data_cfg.get("datasets", {})

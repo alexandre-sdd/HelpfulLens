@@ -32,7 +32,20 @@ def read_review_subset(
     require_positive_useful: bool,
     random_state: int | None,
 ) -> pd.DataFrame:
-    """Read only the columns needed for sentiment scoring."""
+    """Load a filtered subset of reviews for sentiment scoring.
+
+    Args:
+        path: Parquet path containing cleaned reviews.
+        limit: Maximum number of rows to return.
+        require_positive_useful: If True, keep only rows with useful > 0.
+        random_state: Optional seed used when sampling down to ``limit``.
+
+    Returns:
+        DataFrame with review identifiers, text, and useful votes.
+
+    Raises:
+        FileNotFoundError: If the parquet file does not exist.
+    """
     if not path.exists():
         raise FileNotFoundError(f"Missing input file: {path.resolve()}")
 
@@ -77,12 +90,28 @@ def read_review_subset(
 
 
 def prepare_text_column(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize the review text column to non-null strings.
+
+    Args:
+        df: Review DataFrame containing a ``text`` column.
+
+    Returns:
+        Copy with the ``text`` column filled and cast to string.
+    """
     df = df.copy()
     df["text"] = df["text"].fillna("").astype(str)
     return df
 
 
 def build_resume(df: pd.DataFrame) -> dict[str, object]:
+    """Summarize sentiment outputs for logging or persistence.
+
+    Args:
+        df: DataFrame containing scored sentiment columns.
+
+    Returns:
+        Dictionary with row counts, label counts, and summary stats.
+    """
     resume: dict[str, object] = {"total_reviews": int(len(df))}
 
     if "sentiment_label" in df.columns:
@@ -109,6 +138,11 @@ def build_resume(df: pd.DataFrame) -> dict[str, object]:
 
 
 def print_resume(resume: dict[str, object]) -> None:
+    """Print a formatted sentiment summary.
+
+    Args:
+        resume: Summary dictionary produced by :func:`build_resume`.
+    """
     print("\nSentiment resume:")
     print(f"Total reviews: {resume.get('total_reviews', 0):,}")
     label_counts = resume.get("label_counts", {})
@@ -135,6 +169,18 @@ def score_sentiment(
     max_length: int,
     device: int,
 ) -> pd.DataFrame:
+    """Score sentiment labels using a transformer pipeline.
+
+    Args:
+        reviews: Review subset with ``review_id`` and ``text`` columns.
+        model_name: Hugging Face model identifier.
+        batch_size: Number of rows scored per batch.
+        max_length: Maximum token length during truncation.
+        device: Device index passed to the transformers pipeline (-1 for CPU).
+
+    Returns:
+        DataFrame containing sentiment scores keyed by ``review_id``.
+    """
     classifier = hf_pipeline(
         task="text-classification",
         model=model_name,
@@ -192,7 +238,27 @@ def run_distilbert_subset(
     omit_text: bool,
     resume_path: Path | None = None,
 ) -> dict[str, object]:
-    """End-to-end subset loading, scoring, and persistence."""
+    """Run the subset sentiment workflow end to end.
+
+    Args:
+        input_path: Parquet source for cleaned reviews.
+        output_path: Destination for the scored subset parquet.
+        max_reviews: Maximum number of reviews to score.
+        batch_size: Batch size for transformer inference.
+        max_length: Maximum token length for transformer inputs.
+        device: Device index passed to the transformers pipeline (-1 for CPU).
+        model_name: Hugging Face model identifier.
+        random_seed: Optional seed for sampling and reproducibility.
+        require_positive_useful: If True, keep only reviews with useful > 0.
+        omit_text: Whether to drop the ``text`` column before saving.
+        resume_path: Optional JSON path for writing summary statistics.
+
+    Returns:
+        Summary dictionary produced by :func:`build_resume`.
+
+    Raises:
+        SystemExit: If no reviews satisfy the selection criteria.
+    """
     t0 = time.time()
     reviews = read_review_subset(
         path=input_path,

@@ -1,8 +1,15 @@
+"""Build sentiment-enriched review features from cleaned Yelp tables."""
+
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
+import sys
 import time
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from src.features.sentiment_features import (
     DEFAULT_SENTIMENT_BACKEND,
@@ -23,6 +30,15 @@ OUTPUT_PATH = FEATURE_DIR / "review_features_with_sentiment.parquet"
 
 
 def run_feature_engineering(n_reviews: int | None, sentiment_cfg: SentimentConfig) -> Path:
+    """Engineer sentiment and text features, then persist them to parquet.
+
+    Args:
+        n_reviews: Optional cap on the number of reviews to process.
+        sentiment_cfg: Backend configuration for sentiment scoring.
+
+    Returns:
+        Path to the saved feature parquet.
+    """
     print("Feature engineering run started...")
     start = time.time()
 

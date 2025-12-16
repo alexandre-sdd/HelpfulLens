@@ -15,7 +15,15 @@ FALLBACK_PATTERNS = {
 
 
 def _collect_dataset_files(dataset: str, root: Path = RAW_ROOT) -> List[Path]:
-    """Return JSON shards for a dataset, supporting both folders and flat files."""
+    """Return JSON shards for a dataset, supporting both folders and flat files.
+
+    Args:
+        dataset: Dataset name (business, reviews, users, tips).
+        root: Root directory containing raw files.
+
+    Returns:
+        Sorted list of candidate JSON paths (may be empty).
+    """
     dataset_dir = root / dataset
     candidates: List[Path] = []
     if dataset_dir.exists() and dataset_dir.is_dir():
@@ -28,7 +36,11 @@ def _collect_dataset_files(dataset: str, root: Path = RAW_ROOT) -> List[Path]:
 
 
 def load_raw_yelp() -> Dict[str, List[Path]]:
-    """Enumerate available Yelp JSON shards."""
+    """Enumerate available Yelp JSON shards.
+
+    Returns:
+        Mapping of dataset name to discovered JSON file paths.
+    """
 
     datasets = ("business", "reviews", "users", "tips")
     available_files: Dict[str, List[Path]] = {}

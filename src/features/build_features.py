@@ -105,7 +105,14 @@ def _extract_top_list_tokens(series: pd.Series, top_k: int) -> List[str]:
 
 
 def _normalize_category_list(value) -> List[str]:
-    """Split, strip, dedupe, and drop generic parent categories."""
+    """Normalize a category value into a deduplicated list.
+
+    Args:
+        value: Raw category field (string or list) from the business table.
+
+    Returns:
+        List of cleaned category tokens with generic parents removed.
+    """
     if value is None:
         return []
     raw_tokens: List[str]

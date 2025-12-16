@@ -1,3 +1,5 @@
+"""Score sentiment on a compact subset of reviews with DistilBERT."""
+
 from __future__ import annotations
 
 import argparse

@@ -26,10 +26,10 @@ features:
     include_user_stats: true
     include_business_stats: true
   sentiment:
-    include_sentiment_features: false
+    include_sentiment_features: true
     sentiment_path: "data/features/review_features_with_sentiment.parquet"
   tfidf:
-    include_tfidf: false
+    include_tfidf: true
     max_tfidf_features: 3000
     min_df: 5
     ngram_range: [1, 2]

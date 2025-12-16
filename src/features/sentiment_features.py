@@ -34,12 +34,30 @@ class SentimentConfig:
 
 
 def sanitize_label(label: str) -> str:
+    """Normalize a raw sentiment label for use as a column name.
+
+    Args:
+        label: Label text returned by a sentiment model.
+
+    Returns:
+        Lowercase token containing only alphanumerics and underscores.
+    """
     cleaned = "".join(ch if ch.isalnum() else "_" for ch in label.lower()).strip("_")
     return cleaned or "label"
 
 
 def apply_with_progress(series: pd.Series, func, batch_size: int, desc: str) -> pd.Series | pd.DataFrame:
-    """Apply a Python callback in chunks while keeping the script responsive."""
+    """Apply a callback in chunks with a progress bar.
+
+    Args:
+        series: Input values to transform.
+        func: Callable applied elementwise to each chunk.
+        batch_size: Number of rows processed per chunk.
+        desc: Progress label for the tqdm bar.
+
+    Returns:
+        Concatenated outputs from each chunk, preserving input order.
+    """
     total = len(series)
     if total == 0:
         return series.apply(func)
@@ -59,7 +77,14 @@ def apply_with_progress(series: pd.Series, func, batch_size: int, desc: str) -> 
 
 
 def compute_text_features(text: pd.Series) -> pd.DataFrame:
-    """Derive lightweight textual statistics."""
+    """Derive lightweight text statistics.
+
+    Args:
+        text: Series containing review text.
+
+    Returns:
+        DataFrame with length, punctuation, and capitalization counts aligned to the input.
+    """
     txt = text.fillna("").astype(str)
 
     def text_stats(s: str) -> pd.Series:
@@ -84,6 +109,14 @@ def compute_text_features(text: pd.Series) -> pd.DataFrame:
 
 
 def compute_vader_sentiment(text: pd.Series) -> pd.DataFrame:
+    """Score text with the VADER rule-based sentiment model.
+
+    Args:
+        text: Series containing review text.
+
+    Returns:
+        DataFrame with per-row negative, neutral, positive, and compound scores.
+    """
     analyzer = SentimentIntensityAnalyzer()
 
     def score(s: str) -> pd.Series:
@@ -103,6 +136,18 @@ def compute_vader_sentiment(text: pd.Series) -> pd.DataFrame:
 
 
 def compute_transformer_sentiment(text: pd.Series, cfg: SentimentConfig) -> pd.DataFrame:
+    """Score text with a transformer sentiment pipeline.
+
+    Args:
+        text: Series containing review text.
+        cfg: Transformer configuration specifying model, device, and batch sizing.
+
+    Returns:
+        DataFrame with the best label, its score, and per-label probabilities.
+
+    Raises:
+        ImportError: If the transformers dependency is unavailable.
+    """
     if not TRANSFORMERS_AVAILABLE or hf_pipeline is None:
         raise ImportError(
             "transformers is not installed. Install via `pip install transformers torch` "
@@ -162,6 +207,15 @@ def compute_transformer_sentiment(text: pd.Series, cfg: SentimentConfig) -> pd.D
 
 
 def compute_sentiment_features(text: pd.Series, cfg: SentimentConfig) -> pd.DataFrame:
+    """Compute sentiment features using the configured backend.
+
+    Args:
+        text: Series containing review text.
+        cfg: Sentiment configuration indicating which scorer to run.
+
+    Returns:
+        Sentiment feature DataFrame aligned to the input index.
+    """
     backend = (cfg.backend or DEFAULT_SENTIMENT_BACKEND).lower()
     if backend == "transformer":
         return compute_transformer_sentiment(text, cfg)
@@ -174,7 +228,17 @@ def engineer_features(
     users: pd.DataFrame | None,
     sentiment_cfg: SentimentConfig,
 ) -> pd.DataFrame:
-    """Enrich cleaned reviews with sentiment, text stats, and joins."""
+    """Enrich cleaned reviews with sentiment, text stats, and joins.
+
+    Args:
+        reviews: Cleaned review DataFrame with at least text and vote columns.
+        business: Business attributes aligned on ``business_id``.
+        users: Optional user table aligned on ``user_id``.
+        sentiment_cfg: Configuration controlling which sentiment backend to use.
+
+    Returns:
+        DataFrame combining the original reviews with derived features and joins.
+    """
     df = reviews.copy()
 
     if "date" in df.columns:
@@ -289,6 +353,16 @@ def engineer_features(
 
 
 def load_clean_table(path: Path, columns: Iterable[str] | None = None, n_rows: int | None = None) -> pd.DataFrame:
+    """Load a parquet file with optional column selection and row cap.
+
+    Args:
+        path: Parquet file path.
+        columns: Columns to load from the file.
+        n_rows: Optional number of rows to read from the head of the file.
+
+    Returns:
+        DataFrame containing the requested subset of the parquet contents.
+    """
     df = pd.read_parquet(path, columns=columns)
     if n_rows is not None and n_rows > 0:
         df = df.head(n_rows).copy()

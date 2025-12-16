@@ -25,7 +25,14 @@ LOGGER = get_logger("ingest_raw")
 
 
 def load_config(config_path: Path = CONFIG_PATH) -> Dict[str, Dict[str, str]]:
-    """Return the parsed YAML configuration."""
+    """Return the parsed YAML configuration.
+
+    Args:
+        config_path: Path to the project config file.
+
+    Returns:
+        Dictionary representation of the YAML configuration.
+    """
     with config_path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle)
 
@@ -45,7 +52,14 @@ def _normalize_dataset_name(name: str) -> str:
 
 
 def _json_stem(json_path: Path) -> str:
-    """Derive the parquet filename from a JSON shard."""
+    """Derive the parquet filename stem from a JSON shard.
+
+    Args:
+        json_path: Path to a JSON or JSON.GZ file.
+
+    Returns:
+        Filename stem used for parquet outputs.
+    """
     name = json_path.name
     if name.endswith(".json.gz"):
         name = name[: -len(".json.gz")]
@@ -59,12 +73,14 @@ def _parquet_name(json_path: Path) -> str:
 
 
 def _is_supported_file(path: Path) -> bool:
+    """Return True if the path points to a JSON or JSON.GZ file."""
     if path.suffix in SUPPORTED_EXTENSIONS:
         return True
     return path.name.endswith(".json.gz")
 
 
 def _collect_files_from_folder(folder: Path) -> List[Path]:
+    """Collect JSON shards from a folder or file path."""
     if not folder.exists():
         return []
     if folder.is_file():
@@ -73,6 +89,7 @@ def _collect_files_from_folder(folder: Path) -> List[Path]:
 
 
 def _fallback_files(dataset: str, root_dir: Path) -> List[Path]:
+    """Search for files matching fallback patterns when explicit dirs are empty."""
     pattern = FALLBACK_PATTERNS.get(dataset)
     if not pattern:
         return []
@@ -82,7 +99,15 @@ def _fallback_files(dataset: str, root_dir: Path) -> List[Path]:
 
 
 def _read_json(json_path: Path, chunk_size: int | None = None) -> pd.DataFrame:
-    """Read a single Yelp JSON (or JSON.GZ) file."""
+    """Read a single Yelp JSON (or JSON.GZ) file.
+
+    Args:
+        json_path: Path to the JSON file.
+        chunk_size: Optional chunk size passed to ``pd.read_json`` for streaming.
+
+    Returns:
+        DataFrame containing all rows from the file.
+    """
     if chunk_size and chunk_size > 0:
         chunks: List[pd.DataFrame] = []
         for chunk in pd.read_json(json_path, lines=True, chunksize=chunk_size):
@@ -102,7 +127,20 @@ def convert_json_to_parquet(
     limit: int | None = None,
     rows_per_chunk: int | None = None,
 ) -> List[Path]:
-    """Convert JSON shards for a dataset into parquet files."""
+    """Convert JSON shards for a dataset into parquet files.
+
+    Args:
+        dataset: Dataset name (business, reviews, users, tips).
+        files: Iterable of JSON file paths to convert.
+        output_root: Destination directory for parquet outputs.
+        chunk_size: Optional chunk size for pandas JSON reader.
+        force: Whether to overwrite existing parquet files.
+        limit: Maximum number of shards to process.
+        rows_per_chunk: Optional row count to split large files into multiple parquet parts.
+
+    Returns:
+        List of parquet paths written to disk.
+    """
     written: List[Path] = []
     target_dir = output_root / dataset
     target_dir.mkdir(parents=True, exist_ok=True)
@@ -166,7 +204,15 @@ def discover_raw_files(
     config: Dict[str, Dict[str, str]],
     datasets: Sequence[str],
 ) -> Dict[str, List[Path]]:
-    """Return JSON shards detected for each requested dataset."""
+    """Return JSON shards detected for each requested dataset.
+
+    Args:
+        config: Parsed configuration dictionary.
+        datasets: Iterable of dataset names requested by the user.
+
+    Returns:
+        Mapping of dataset name to sorted JSON file paths (may be empty lists).
+    """
     data_cfg = config.get("data", {})
     raw_cfg = data_cfg.get("raw", {})
     root_dir = Path(raw_cfg.get("root_dir", "data/raw"))

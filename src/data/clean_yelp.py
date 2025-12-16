@@ -19,7 +19,15 @@ LOGGER = get_logger("clean_yelp")
 
 # ---------- Core cleaning functions (pure, no I/O) ----------
 def clean_reviews_df(df: pd.DataFrame, min_text_length: int = 10) -> pd.DataFrame:
-    """Clean raw reviews DataFrame and return a cleaned version."""
+    """Clean raw reviews and derive basic date parts.
+
+    Args:
+        df: Raw reviews DataFrame.
+        min_text_length: Minimum number of characters required in the review text.
+
+    Returns:
+        Filtered DataFrame with required columns, typed vote counts, and date parts.
+    """
     expected_cols = [
         "review_id",
         "user_id",
@@ -62,14 +70,28 @@ def clean_reviews_df(df: pd.DataFrame, min_text_length: int = 10) -> pd.DataFram
 
 
 def parse_elite_column(elite_series: pd.Series) -> Tuple[pd.Series, pd.Series]:
-    """Parse Yelp 'elite' column into raw string + boolean."""
+    """Parse the Yelp ``elite`` column into normalized text and a flag.
+
+    Args:
+        elite_series: Series containing elite membership strings.
+
+    Returns:
+        Tuple of the cleaned elite string Series and a boolean indicator of any membership.
+    """
     elite_str = elite_series.astype("string").fillna("None")
     is_elite_ever = elite_str.str.lower().ne("none")
     return elite_str, is_elite_ever
 
 
 def clean_users_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean raw users DataFrame and return a cleaned version."""
+    """Clean raw user records.
+
+    Args:
+        df: Raw users DataFrame.
+
+    Returns:
+        DataFrame with parsed dates, numeric columns coerced, and elite indicators added.
+    """
     expected_cols = [
         "user_id",
         "name",
@@ -117,7 +139,14 @@ def clean_users_df(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_business_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Clean raw business DataFrame and return a cleaned version."""
+    """Clean raw business records and normalize categories.
+
+    Args:
+        df: Raw business DataFrame.
+
+    Returns:
+        DataFrame with typed numeric columns, parsed categories, and binary ``is_open``.
+    """
     expected_cols = [
         "business_id",
         "name",
@@ -167,7 +196,15 @@ def load_config(config_path: Path = CONFIG_PATH) -> Dict:
 
 
 def _load_raw_table(dataset: str, raw_root: Path) -> pd.DataFrame | None:
-    """Load concatenated parquet shards for a dataset."""
+    """Load concatenated parquet shards for a dataset.
+
+    Args:
+        dataset: Dataset name (reviews, users, business).
+        raw_root: Root folder containing parquet shards.
+
+    Returns:
+        Concatenated DataFrame, or ``None`` if no shards are found.
+    """
     dataset_dir = raw_root / dataset
     legacy_path = raw_root / f"{dataset}_raw.parquet"
     frames: List[pd.DataFrame] = []
@@ -218,7 +255,17 @@ def clean_dataset(
     cleaned_root: Path,
     limit: int | None = None,
 ) -> Path | None:
-    """Load, clean, and persist a dataset."""
+    """Load, clean, and persist a dataset.
+
+    Args:
+        dataset: Dataset name (reviews, users, business).
+        raw_root: Root directory containing raw parquet shards.
+        cleaned_root: Destination directory for cleaned parquet files.
+        limit: Optional row cap for smoke tests.
+
+    Returns:
+        Path to the written parquet file, or ``None`` if the dataset is missing.
+    """
     cleaner = CLEANERS.get(dataset)
     if not cleaner:
         LOGGER.warning("No cleaner defined for dataset '%s'", dataset)

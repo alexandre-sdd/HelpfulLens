@@ -14,7 +14,7 @@ conda.yaml
 requirements.txt
 data/                  # placeholder READMEs describing expected drops
 notebooks/             # exploratory notebooks
-reports/eda/           # generated figures + summary markdown
+reports/eda/           # produced figures + summary markdown
 scripts/               # pipeline + feature/EDA helpers
 src/                   # reusable modules for ingest/clean/make_dataset/config/utils
 ```
